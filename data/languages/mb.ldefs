@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- See Relax specification: Ghidra/Framework/SoftwareModeling/data/languages/language_definitions.rxg -->
+<language_definitions>
+  <language processor="MicroBlaze"
+            endian="little"
+            size="32"
+            variant="default"
+            version="11.0"
+            slafile="mb.sla"
+            processorspec="mb.pspec"
+            id="mb:LE:32:default">
+    <description>MicroBlaze 32 little</description>
+    <compiler name="default" spec="mb.cspec" id="default"/>
+  </language>
+</language_definitions>
