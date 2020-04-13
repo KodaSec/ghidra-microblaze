@@ -1,0 +1,52 @@
+# Xavier McCaig and Frank Tursi
+# Beginning SLEIGH Code for 32-bit MicroBlaze
+
+define endian     = $(ENDIAN);
+define alignment  = 4;
+
+define space ram      type=ram_space        size=4 default;
+define space register type=register_space   size=4;
+
+define register offset=0 size=4
+  [ r0 r1 r2 r3 r4 r5 r6 r7	r8 r9 r10 r11 r12 r13 r14 r15 r16 r17 r18 r19 r20	r21 r22 r123 r24 r25 r26 r27 r28 r29 r30 r31 ];
+
+define register offset=0x80 size=4
+  [ PC MSR EAR ESR FSR BTR EDR SLR SHR PID ZPR TLBLO TLBHI TLBX TLBSX ] ;
+
+define register offset=0xB0 size=4
+  [ PVR0 PVR1 PVR2 PVR3 PVR4 PVR5 PVR6 PVR7 PVR8 PVR9 PVR10 PVR11 PVR12 ] ;
+
+@define FSR_IO    "fsr[27,1]"
+@define FSR_DZ    "fsr[28,1]"
+@define FSR_OF    "fsr[29,1]"
+@define FSR_UF    "fsr[30,1]"
+@define FSR_DO    "fsr[31,1]"
+
+@define MSR_CC    "msr[0,32]"
+@define MSR_VMS   "msr[17,1]"
+@define MSR_VM    "msr[18,1]"
+@define MSR_UMS   "msr[19,1]"
+@define MSR_UM    "msr[20,1]"
+@define MSR_PVR   "msr[21,1]"
+@define MSR_EIP   "msr[22,1]"
+@define MSR_EE    "msr[23,1]"
+@define MSR_DCE   "msr[24,1]"
+@define MSR_DZO   "msr[25,1]"
+@define MSR_ICE   "msr[26,1]"
+@define MSR_FSL   "msr[27,1]"
+@define MSR_BIP   "msr[28,1]"
+@define MSR_C     "msr[29,1]"
+@define MSR_IE    "msr[30,1]"
+
+@define ESR_DS    "esr[19,1]"
+@define ESR_ESS   "esr[20,5]"
+@define ESR_EC    "esr[27,5]"
+
+
+
+@if ENDIAN == "little"
+  define register offset=0x size=4  [ s0 s1 s2 s3 s4 s5 s6 s7 s8 s9 s10 s11 s12 s13 s14 s15
+  										s16 s17 s18 s19 s20 s21 s22 s23 s24 s25 s26 s27 s28 s29 s30 s31 ];
+@else # ENDIAN == "big"
+  define register offset=0x size=4  [ s31 s30 s29 s28 s27 s26 s25 s24 s23 s22 s21 s20 s19 s18 s17 s16
+  										s15 s14 s13 s12 s11 s10 s9 s8 s7 s6 s5 s4 s3 s2 s1 s0 ];
