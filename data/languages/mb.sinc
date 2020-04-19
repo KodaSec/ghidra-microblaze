@@ -8,13 +8,13 @@ define space ram      type=ram_space        size=4 default;
 define space register type=register_space   size=4;
 
 define register offset=0 size=4
-  [ R0 R1 R2 R3 R4 R5 R6 R7	R8 R9 R10 R11 R12 R13 R14 R15 R16 R17 R18 R19 R20	R21 R22 R23 R24 R25 R26 R27 R28 R29 R30 R31 ];
+  [ r0 r1 r2 r3 r4 r5 r6 r7	r8 r9 r10 r11 r12 r13 r14 r15 r16 r17 r18 r19 r20 r21 r22 r23 r24 r25 r26 r27 r28 r29 r30 r31 ];
 
 define register offset=0x80 size=4
-  [ PC MSR EAR ESR FSR BTR EDR SLR SHR PID ZPR TLBLO TLBHI TLBX TLBSX ] ;
+  [ pc msr ear esr fsr btr edr slr shr pid zpr tlblo tlbhi tlbx tlbsx ] ;
 
-define register offset=0xB0 size=4
-  [ PVR0 PVR1 PVR2 PVR3 PVR4 PVR5 PVR6 PVR7 PVR8 PVR9 PVR10 PVR11 PVR12 ] ;
+define register offset=0xBC size=4
+  [ pvr0 pvr1 pvr2 pvr3 pvr4 pvr5 pvr6 pvr7 pvr8 pvr9 pvr10 pvr11 pvr12 ] ;
 
 @define FSR_IO    "fsr[27,1]"
 @define FSR_DZ    "fsr[28,1]"
@@ -42,121 +42,117 @@ define register offset=0xB0 size=4
 @define ESR_ESS   "esr[20,5]"
 @define ESR_EC    "esr[27,5]"
 
-
-
-@if ENDIAN == "little"
-  define register offset=0x size=4  [ s0 s1 s2 s3 s4 s5 s6 s7 s8 s9 s10 s11 s12 s13 s14 s15
-  										s16 s17 s18 s19 s20 s21 s22 s23 s24 s25 s26 s27 s28 s29 s30 s31 ];
-@else # ENDIAN == "big"
-  define register offset=0x size=4  [ s31 s30 s29 s28 s27 s26 s25 s24 s23 s22 s21 s20 s19 s18 s17 s16
-  										s15 s14 s13 s12 s11 s10 s9 s8 s7 s6 s5 s4 s3 s2 s1 s0 ];
-
 define token instr(32)
-      op05(0,5)
-      dReg(6,10)
-      aReg(11,15)
-      bReg(16,20)
-      cond2131(21,31)
-      cond1631(16,31)
+      op05 = (0,5)
+      rD = (6,10)
+      rA = (11,15)
+      rB = (16,20)
+      cond2131 = (21,31)
+      cond1631 = (16,31)
+      imm = (16,21)
 ;
 
-:add rD, rA, rB
-:rsub rD, rA, rB
-addc rD, rA, rB
-rsubc
-addk rD, rA, rB
-rsubk
-cmp
-addkc rD, rA, rB
-rsubkc
-addi
-rsubi
-addic
-rsubic
-addik
-rsubik
-addikc
-rsubikc
-mul
-mulh
-mulhu
-mulhsu
-bs
-idiv
-getd
-putd
-fadd
-frsub
-fmul
-fdiv
-fcmp
-flt
-fint
-fsqrt
-muli
-bsi
-get
-put
-or
-pcmpbf
-:and RD, RA, RB           		is prime=0 & zero5=0 & fct=36 & RA & RB & RD { #This line from MIPS.SINC currently}
-    RD = RA & RB;
-}
-pcmpeq
-xor
-andn
-pcmpne
-clz
-sext8
-sext16
-sra
-src
-srl
-swapb
-swaph
-wdc
-wic
-mfs
-msrclr
-msrset
-mts
-br
-brk
-beq
-bge
-bgt
-ble
-blt
-bne
-ori
-andi
-xori
-andni
-imm
-rtbd
-rtid
-rted
-rtsd
-bri
-brki
-mbar
-beqi
-bgei
-bgti
-blei
-blti
-bnei
-lbu
-lhu
-lw
-lwx
-sb
-sh
-sw
-swx
-lbui
-lhui
-lwi
-sbi
-shi
-swi
+attach variables [ rD rA rB ] [ r0 r1 r2 r3 r4 r5 r6 r7	r8 r9 r10 r11 r12 r13 r14 r15 r16 r17 r18 r19 r20 r21 r22 r23 r24 r25 r26 r27 r28 r29 r30 r31 ];
+
+:add rD, rA, rB is op05=0b000000 & rD & rA & rB & cond2131=0b00000000000 {}
+:rsub rD, rA, rB is op05=0b000001 & rD & rA & rB & cond2131=0b00000000000 {}
+:addc rD, rA, rB is op05=0b000010 & rD & rA & rB & cond2131=0b00000000000 {}
+:rsubc rD, rA, rB is op05=0b000011 & rD & rA & rB & cond2131=0b00000000000 {}
+:addk rD, rA, rB is op05=0b000100 & rD & rA & rB & cond2131=0b00000000000 {}
+:rsubk rD, rA, rB is op05=0b000101 & rD & rA & rB & cond2131=0b00000000000 {}
+:cmp rD, rA, rB is op05=0b000101 & rD & rA & rB & cond2131=0b00000000001 {}
+:cmpu rD, rA, rB is op05=0b000101 & rD & rA & rB & cond2131=0b00000000011 {}
+:addkc rD, rA, rB is op05=0b000110 & rD & rA & rB & cond2131=0b00000000000 {}
+:rsubkc rD, rA, rB is op05=0b000111 & rD & rA & rB & cond2131=0b00000000000 {}
+#:addi rD, rA, imm  is op05=0b001000 & rD & rA & imm {}
+#:rsubi rD, rA, imm is op05=0b001001 & rD & rA & imm {}
+#:addic rD, rA, imm
+#:rsubic rD, rA, imm
+#:addik rD, rA, imm
+#:rsubik rD, rA, imm
+#:addikc rD, rA, imm
+#:rsubikc rD, rA, imm
+#:mul rD, rA, rB
+#:mulh rD, rA, rB
+#:mulhu rD, rA, rB
+#:mulhsu rD, rA, rB
+#:bsrl rD, rA, rB
+#:bsra rD, rA, rB
+#:bsll rD, rA, rB
+#:idiv rD, rA, rB
+#:idivu rD, rA, rB
+#:getd rD, rB
+#:putd rD, rB
+#:fadd rD, rA, rB
+#:frsub rD, rA, rB
+#:fmul rD, rA, rB
+#:fdiv rD, rA, rB
+#:fcmp rD, rA, rB
+#:flt rD, rA
+#:fint rD, rA
+#:fsqrt rD, rA
+#:muli rD, rA, imm
+#:bsi rD, rA, imm
+#:get rD, FSLx
+#:put rD, FSLx
+# :or rD, rA, rB is op05=0b100000 & rD & rA & rB & cond2131=0b00000000000 {}
+# :pcmpbf rD, rA, rB
+# :and rD, rA, rB
+# :pcmpeq rD, rA, rB
+# :xor rD, rA, rB
+# :andn rD, rA, rB
+# :pcmpne rD, rA, rB
+# :clz rD, rA
+# :sext8 rD, rA
+# :sext16 rD, rA
+# :sra rD, rA
+# :src rD, rA
+# :srl rD, rA
+# :swapb rD, rA
+# :swaph rD, rA
+# :wdc rA, rB
+# :wic rA, rB
+# :mfs rD, sA              ####Sa?
+# :msrclr rD, imm
+# :msrset rD, imm
+# :mts sD, rA
+# :br rB
+# :brk rD, rB
+# :beq rA, rB
+# :bge rA, rB
+# :bgt rA, rB
+# :ble rA, rB
+# :blt rA, rB
+# :bne rA, rB
+# :ori rD, rA, imm
+# :andi rD, rA, imm
+# :xori rD, rA, imm
+# :andni rD, rA, imm
+# :imm imm
+# :rtbd rA, imm
+# :rtid rA, imm
+# :rted rA, imm
+:rtsd rA, imm is op05=0b101101 & rA & imm {}
+# :bri imm
+# :brki rD, imm
+# :mbar imm
+# :beqi rA, imm
+# :bgei rA, imm
+# :bgti rA, imm
+# :blei rA, imm
+# :blti rA, imm
+# :bnei rA, imm
+# :lbu rD, rA, rB
+# :lhu rD, rA, rB
+# :lw rD, rA, rB
+# :lwx rD, rA, rB
+# :sb rD, rA, rB
+# :sh rD, rA, rB
+# :sw rD, rA, rB
+# :swx rD, rA, rB
+# :lbui rD, rA, imm
+# :lhui rD, rA, imm
+# :lwi rD, rA, imm
+# :sbi rD, rA, imm
+# :shi rD, rA, imm
+# :swi rD, rA, imm

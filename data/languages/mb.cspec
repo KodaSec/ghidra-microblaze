@@ -1,8 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- See Relax specification: Ghidra/Framework/SoftwareModeling/data/languages/compiler_spec.rxg -->
 <compiler_spec>
   <data_organization>
-  <!-- See MB Processor Reference Guide pg 195 -->
     <absolute_max_alignment value="" />
     <machine_alignment value="" />
     <default_alignment value="" />
@@ -13,5 +11,13 @@
     <long_size value="4" />
     <long_long_size value="8" />
     <float_size value="4" />
+    <size_alignment_map>
+		<entry size="1" alignment="1" />
+		<entry size="2" alignment="2" />
+		<entry size="4" alignment="4" />
+		<entry size="8" alignment="8" />
+	</size_alignment_map>
   </data_organization>
+  <global>
+  </global>
 </compiler_spec>
