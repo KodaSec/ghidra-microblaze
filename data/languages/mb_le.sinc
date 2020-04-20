@@ -43,80 +43,83 @@ define register offset=0xBC size=4
 @define ESR_EC    "esr[27,5]"
 
 define token instr(32)
-      op05 = (0,5)
-      rD = (6,10)
-      rA = (11,15)
-      rB = (16,20)
-      cond2131 = (21,31)
-      cond1631 = (16,31)
-      cond2627 = (26,27)
-      imm = (16,31)
-      immw = (21,25)
-      imms = (27,31)
-      bar1620 = (16,20)
-      bar2126 = (21,26)
+      op2631 = (26,31)
+      rD = (21,25)
+      rA = (16,20)
+      rB = (11,15)
+      cd0010 = (0,10)
+      cd0015 = (0,15)
+      cd0505 = (5,5)
+      imm = (0,15)
+      immw = (6,10)
+      imms = (0,4)
+      bs1115 = (11,15)
+      bs0510 = (5,10)
 ;
 
 attach variables [ rD rA rB ] [ r0 r1 r2 r3 r4 r5 r6 r7	r8 r9 r10 r11 r12 r13 r14 r15 r16 r17 r18 r19 r20 r21 r22 r23 r24 r25 r26 r27 r28 r29 r30 r31 ];
 
-:add rD, rA, rB is op05=0b000000 & rD & rA & rB & cond2131=0b00000000000 unimpl
-:rsub rD, rA, rB is op05=0b000001 & rD & rA & rB & cond2131=0b00000000000 unimpl
-:addc rD, rA, rB is op05=0b000010 & rD & rA & rB & cond2131=0b00000000000 unimpl
-:rsubc rD, rA, rB is op05=0b000011 & rD & rA & rB & cond2131=0b00000000000 unimpl
-:addk rD, rA, rB is op05=0b000100 & rD & rA & rB & cond2131=0b00000000000 unimpl
-:rsubk rD, rA, rB is op05=0b000101 & rD & rA & rB & cond2131=0b00000000000 unimpl
-:cmp rD, rA, rB is op05=0b000101 & rD & rA & rB & cond2131=0b00000000001 unimpl
-:cmpu rD, rA, rB is op05=0b000101 & rD & rA & rB & cond2131=0b00000000011 unimpl
-:addkc rD, rA, rB is op05=0b000110 & rD & rA & rB & cond2131=0b00000000000 unimpl
-:rsubkc rD, rA, rB is op05=0b000111 & rD & rA & rB & cond2131=0b00000000000 unimpl
-:addi rD, rA, imm  is op05=0b001000 & rD & rA & imm unimpl
-:rsubi rD, rA, imm is op05=0b001001 & rD & rA & imm unimpl
-:addic rD, rA, imm is op05=0b001010 & rD & rA & imm unimpl
-:rsubic rD, rA, imm is op05=0b001011 & rD & rA & imm unimpl
-:addik rD, rA, imm is op05=0b001100 & rD & rA & imm unimpl
-:rsubik rD, rA, imm is op05=0b001101 & rD & rA & imm unimpl
-:addikc rD, rA, imm is op05=0b001110 & rD & rA & imm unimpl
-:rsubikc rD, rA, imm is op05=0b001111 & rD & rA & imm unimpl
-:mul rD, rA, rB is op05=0b010000 & rD & rA & rB & cond2131=0b00000000000 unimpl
-:mulh rD, rA, rB is op05=0b010000 & rD & rA & rB & cond2131=0b00000000001 unimpl
-:mulhu rD, rA, rB is op05=0b010000 & rD & rA & rB & cond2131=0b00000000011 unimpl
-:mulhsu rD, rA, rB is op05=0b010000 & rD & rA & rB & cond2131=0b00000000010 unimpl
-:bsrl rD, rA, rB is op05=0b010001 & rD & rA & rB & cond2131=0b00000000000 unimpl
-:bsra rD, rA, rB is op05=0b010001 & rD & rA & rB & cond2131=0b01000000000 unimpl
-:bsll rD, rA, rB is op05=0b010001 & rD & rA & rB & cond2131=0b10000000000 unimpl
-:idiv rD, rA, rB is op05=0b010010 & rD & rA & rB & cond2131=0b00000000000 unimpl
-:idivu rD, rA, rB is op05=0b010010 & rD & rA & rB & cond2131=0b00000000010 unimpl
+
+:add rD, rA, rB is op2631=0b000000 & rD & rA & rB & cd0010=0b00000000000 unimpl
+:rsub rD, rA, rB is op2631=0b000001 & rD & rA & rB & cd0010=0b00000000000 unimpl
+:addc rD, rA, rB is op2631=0b000010 & rD & rA & rB & cd0010=0b00000000000 unimpl
+:rsubc rD, rA, rB is op2631=0b000011 & rD & rA & rB & cd0010=0b00000000000 unimpl
+:addk rD, rA, rB is op2631=0b000100 & rD & rA & rB & cd0010=0b00000000000 unimpl
+:rsubk rD, rA, rB is op2631=0b000101 & rD & rA & rB & cd0010=0b00000000000 unimpl
+:cmp rD, rA, rB is op2631=0b000101 & rD & rA & rB & cd0010=0b00000000001 unimpl
+:cmpu rD, rA, rB is op2631=0b000101 & rD & rA & rB & cd0010=0b00000000011 unimpl
+:addkc rD, rA, rB is op2631=0b000110 & rD & rA & rB & cd0010=0b00000000000 unimpl
+:rsubkc rD, rA, rB is op2631=0b000111 & rD & rA & rB & cd0010=0b00000000000 unimpl
+:addi rD, rA, imm  is op2631=0b001000 & rD & rA & imm unimpl
+:rsubi rD, rA, imm is op2631=0b001001 & rD & rA & imm unimpl
+:addic rD, rA, imm is op2631=0b001010 & rD & rA & imm unimpl
+:rsubic rD, rA, imm is op2631=0b001011 & rD & rA & imm unimpl
+:addik rD, rA, imm is op2631=0b001100 & rD & rA & imm unimpl
+:rsubik rD, rA, imm is op2631=0b001101 & rD & rA & imm unimpl
+:addikc rD, rA, imm is op2631=0b001110 & rD & rA & imm unimpl
+:rsubikc rD, rA, imm is op2631=0b001111 & rD & rA & imm unimpl
+:mul rD, rA, rB is op2631=0b010000 & rD & rA & rB & cd0010=0b00000000000 unimpl
+:mulh rD, rA, rB is op2631=0b010000 & rD & rA & rB & cd0010=0b00000000001 unimpl
+:mulhu rD, rA, rB is op2631=0b010000 & rD & rA & rB & cd0010=0b00000000011 unimpl
+:mulhsu rD, rA, rB is op2631=0b010000 & rD & rA & rB & cd0010=0b00000000010 unimpl
+:bsrl rD, rA, rB is op2631=0b010001 & rD & rA & rB & cd0010=0b00000000000 unimpl
+:bsra rD, rA, rB is op2631=0b010001 & rD & rA & rB & cd0010=0b01000000000 unimpl
+:bsll rD, rA, rB is op2631=0b010001 & rD & rA & rB & cd0010=0b10000000000 unimpl
+:idiv rD, rA, rB is op2631=0b010010 & rD & rA & rB & cd0010=0b00000000000 unimpl
+:idivu rD, rA, rB is op2631=0b010010 & rD & rA & rB & cd0010=0b00000000010 unimpl
 #:getd rD, rB
 #:putd rD, rB
-:fadd rD, rA, rB is op05=0b010110 & rD & rA & rB & cond2131=0b00000000000 unimpl
-:frsub rD, rA, rB is op05=0b010110 & rD & rA & rB & cond2131=0b00010000000 unimpl
-:fmul rD, rA, rB is op05=0b010110 & rD & rA & rB & cond2131=0b00100000000 unimpl
-:fdiv rD, rA, rB is op05=0b010110 & rD & rA & rB & cond2131=0b00110000000 unimpl
-:fcmp rD, rA, rB is op05=0b010110 & rD & rA & rB & cond2131=0b10000000000 unimpl
-:flt rD, rA is op05=0b010110 & rD & rA & cond1631=0b0000001010000000 unimpl
-:fint rD, rA is op05=0b010110 & rD & rA & cond1631=0b0000001100000000 unimpl	
-:fsqrt rD, rA is op05=0b010110 & rD & rA & cond1631=0b0000001110000000 unimpl
-:muli rD, rA, imm is op05=0b011000 & rD & rA & imm unimpl
-:bsrli rD, rA, imms is op05=0b011001 & rD & rA & bar1620=0b00000 & bar2126=0b000000 & imms unimpl
-:bsrai rD, rA, imms is op05=0b011001 & rD & rA & bar1620=0b00000 & bar2126=0b010000 & imms unimpl
-:bslli rD, rA, imms is op05=0b011001 & rD & rA & bar1620=0b00000 & bar2126=0b100000 & imms unimpl
-:bsefi rD, rA, immw, imms is op05=0b011001 & rD & rA & bar1620=0b01000 & immw & cond2627=0 & imms unimpl
-:bsifi rD, rA, immw, imms is op05=0b011001 & rD & rA & bar1620=0b10000 & immw & cond2627=0 & imms unimpl
+:fadd rD, rA, rB is op2631=0b010110 & rD & rA & rB & cd0010=0b00000000000 unimpl
+:frsub rD, rA, rB is op2631=0b010110 & rD & rA & rB & cd0010=0b00010000000 unimpl
+:fmul rD, rA, rB is op2631=0b010110 & rD & rA & rB & cd0010=0b00100000000 unimpl
+:fdiv rD, rA, rB is op2631=0b010110 & rD & rA & rB & cd0010=0b00110000000 unimpl
+:fcmp rD, rA, rB is op2631=0b010110 & rD & rA & rB & cd0010=0b10000000000 unimpl
+:flt rD, rA is op2631=0b010110 & rD & rA & cd0015=0b0000001010000000 unimpl
+:fint rD, rA is op2631=0b010110 & rD & rA & cd0015=0b0000001100000000 unimpl	
+:fsqrt rD, rA is op2631=0b010110 & rD & rA & cd0015=0b0000001110000000 unimpl
+:muli rD, rA, imm is op2631=0b011000 & rD & rA & imm unimpl
+:bsrli rD, rA, imms is op2631=0b011001 & rD & rA & bs1115=0b00000 & bs0510=0b000000 & imms unimpl
+:bsrai rD, rA, imms is op2631=0b011001 & rD & rA & bs1115=0b00000 & bs0510=0b010000 & imms unimpl
+:bslli rD, rA, imms is op2631=0b011001 & rD & rA & bs1115=0b00000 & bs0510=0b100000 & imms unimpl
+:bsefi rD, rA, immw, imms is op2631=0b011001 & rD & rA & bs1115=0b01000 & immw & cd0505=0 & imms unimpl
+:bsifi rD, rA, immw, imms is op2631=0b011001 & rD & rA & bs1115=0b10000 & immw & cd0505=0 & imms unimpl
 #:get rD, FSLx
 #:put rD, FSLx
-:or rD, rA, rB is op05=0b100000 & rD & rA & rB & cond2131=0b00000000000 unimpl
-:pcmpbf rD, rA, rB is op05=0b100000 & rD & rA & rB & cond2131=0b10000000000 unimpl
-:and rD, rA, rB is op05=0b100001 & rD & rA & rB & cond2131=0b00000000000 unimpl
-:pcmpeq rD, rA, rB is op05=0b100010 & rD & rA & rB & cond2131=0b10000000000 unimpl
-:xor rD, rA, rB is op05=0b100010 & rD & rA & rB & cond2131=0b00000000000 unimpl
-:andn rD, rA, rB is op05=0b100011 & rD & rA & rB & cond2131=0b00000000000 unimpl
-:pcmpne rD, rA, rB is op05=0b100011 & rD & rA & rB & cond2131=0b10000000000 unimpl
-:clz rD, rA is op05=0b100100 & rD & rA & cond1631=0b0000000011100000 unimpl
-:sext8 rD, rA is op05=0b100100 & rD & rA & cond1631=0b0000000001100000 unimpl
-:sext16 rD, rA is op05=0b100100 & rD & rA & cond1631=0b0000000001100001 unimpl
-:sra rD, rA is op05=0b100100 & rD & rA & cond1631=0b0000000000000001 unimpl
-:src rD, rA is op05=0b100100 & rD & rA & cond1631=0b0000000000100001 unimpl
-:srl rD, rA is op05=0b100100 & rD & rA & cond1631=0b0000000001000001 unimpl
+:or rD, rA, rB is op2631=0b100000 & rD & rA & rB & cd0010=0b00000000000 unimpl
+:pcmpbf rD, rA, rB is op2631=0b100000 & rD & rA & rB & cd0010=0b10000000000 unimpl
+
+:and rD, rA, rB is op2631=0b100001 & rD & rA & rB & cd0010=0b00000000000 unimpl
+
+:pcmpeq rD, rA, rB is op2631=0b100010 & rD & rA & rB & cd0010=0b10000000000 unimpl
+:xor rD, rA, rB is op2631=0b100010 & rD & rA & rB & cd0010=0b00000000000 unimpl
+:andn rD, rA, rB is op2631=0b100011 & rD & rA & rB & cd0010=0b00000000000 unimpl
+:pcmpne rD, rA, rB is op2631=0b100011 & rD & rA & rB & cd0010=0b10000000000 unimpl
+:clz rD, rA is op2631=0b100100 & rD & rA & cd0015=0b0000000011100000 unimpl
+:sext8 rD, rA is op2631=0b100100 & rD & rA & cd0015=0b0000000001100000 unimpl
+:sext16 rD, rA is op2631=0b100100 & rD & rA & cd0015=0b0000000001100001 unimpl
+:sra rD, rA is op2631=0b100100 & rD & rA & cd0015=0b0000000000000001 unimpl
+:src rD, rA is op2631=0b100100 & rD & rA & cd0015=0b0000000000100001 unimpl
+:srl rD, rA is op2631=0b100100 & rD & rA & cd0015=0b0000000001000001 unimpl
 #:swapb rD, rA
 #:swaph rD, rA
 #:wdc rA, rB
@@ -134,14 +137,14 @@ attach variables [ rD rA rB ] [ r0 r1 r2 r3 r4 r5 r6 r7	r8 r9 r10 r11 r12 r13 r1
 #:blt rA, rB
 #:bne rA, rB
 #:ori rD, rA, imm
-:andi rD, rA, imm is op05=0b101001 & rD & rA & imm unimpl
+:andi rD, rA, imm is op2631=0b101001 & rD & rA & imm unimpl
 #:xori rD, rA, imm
-:andni rD, rA, imm is op05=0b101011 & rD & rA & imm unimpl
+:andni rD, rA, imm is op2631=0b101011 & rD & rA & imm unimpl
 #:imm imm
 #:rtbd rA, imm
 #:rtid rA, imm
 #:rted rA, imm
-:tsd rA, imm is op05=0b101101 & rA & imm unimpl
+:tsd rA, imm is op2631=0b101101 & rA & imm unimpl
 #:bri imm
 #:brki rD, imm
 #:mbar imm
