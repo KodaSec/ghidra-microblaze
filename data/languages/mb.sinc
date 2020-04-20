@@ -50,6 +50,8 @@ define token instr(32)
       cond2131 = (21,31)
       cond1631 = (16,31)
       imm = (16,31)
+      immw = (21,25)
+      imms = (27,31)
       bar1620 = (16,20)
       bar2126 = (21,26)
 ;
