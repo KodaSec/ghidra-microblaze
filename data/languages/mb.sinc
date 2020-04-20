@@ -49,7 +49,9 @@ define token instr(32)
       rB = (16,20)
       cond2131 = (21,31)
       cond1631 = (16,31)
-      imm = (16,21)
+      imm = (16,31)
+      bar1620 = (16,20)
+      bar2126 = (21,26)
 ;
 
 attach variables [ rD rA rB ] [ r0 r1 r2 r3 r4 r5 r6 r7	r8 r9 r10 r11 r12 r13 r14 r15 r16 r17 r18 r19 r20 r21 r22 r23 r24 r25 r26 r27 r28 r29 r30 r31 ];
@@ -64,95 +66,99 @@ attach variables [ rD rA rB ] [ r0 r1 r2 r3 r4 r5 r6 r7	r8 r9 r10 r11 r12 r13 r1
 :cmpu rD, rA, rB is op05=0b000101 & rD & rA & rB & cond2131=0b00000000011 {}
 :addkc rD, rA, rB is op05=0b000110 & rD & rA & rB & cond2131=0b00000000000 {}
 :rsubkc rD, rA, rB is op05=0b000111 & rD & rA & rB & cond2131=0b00000000000 {}
-#:addi rD, rA, imm  is op05=0b001000 & rD & rA & imm {}
-#:rsubi rD, rA, imm is op05=0b001001 & rD & rA & imm {}
-#:addic rD, rA, imm
-#:rsubic rD, rA, imm
-#:addik rD, rA, imm
-#:rsubik rD, rA, imm
-#:addikc rD, rA, imm
-#:rsubikc rD, rA, imm
-#:mul rD, rA, rB
-#:mulh rD, rA, rB
-#:mulhu rD, rA, rB
-#:mulhsu rD, rA, rB
-#:bsrl rD, rA, rB
-#:bsra rD, rA, rB
-#:bsll rD, rA, rB
-#:idiv rD, rA, rB
-#:idivu rD, rA, rB
+:addi rD, rA, imm  is op05=0b001000 & rD & rA & imm {}
+:rsubi rD, rA, imm is op05=0b001001 & rD & rA & imm {}
+:addic rD, rA, imm is op05=0b001010 & rD & rA & imm {}
+:rsubic rD, rA, imm is op05=0b001011 & rD & rA & imm {}
+:addik rD, rA, imm is op05=0b001100 & rD & rA & imm {}
+:rsubik rD, rA, imm is op05=0b001101 & rD & rA & imm {}
+:addikc rD, rA, imm is op05=0b001110 & rD & rA & imm {}
+:rsubikc rD, rA, imm is op05=0b001111 & rD & rA & imm {}
+:mul rD, rA, rB is op05=0b010000 & rD & rA & rB & cond2131=0b00000000000 {}
+:mulh rD, rA, rB is op05=0b010000 & rD & rA & rB & cond2131=0b00000000001 {}
+:mulhu rD, rA, rB is op05=0b010000 & rD & rA & rB & cond2131=0b00000000011 {}
+:mulhsu rD, rA, rB is op05=0b010000 & rD & rA & rB & cond2131=0b00000000010 {}
+:bsrl rD, rA, rB is op05=010001 & rD & rA & rB & cond2131=0b00000000000 {}
+:bsra rD, rA, rB is op05=010001 & rD & rA & rB & cond2131=0b01000000000 {}
+:bsll rD, rA, rB is op05=010001 & rD & rA & rB & cond2131=0b10000000000 {}
+:idiv rD, rA, rB is op05=010010 & rD & rA & rB & cond2131=0b00000000000 {}
+:idivu rD, rA, rB is op05=010010 & rD & rA & rB & cond2131=0b00000000010 {}
 #:getd rD, rB
 #:putd rD, rB
-#:fadd rD, rA, rB
-#:frsub rD, rA, rB
-#:fmul rD, rA, rB
-#:fdiv rD, rA, rB
-#:fcmp rD, rA, rB
-#:flt rD, rA
-#:fint rD, rA
-#:fsqrt rD, rA
-#:muli rD, rA, imm
-#:bsi rD, rA, imm
+:fadd rD, rA, rB is op05=0b010110 & rD & rA & rB & cond2131=0b00000000000 {}
+:frsub rD, rA, rB is op05=0b010110 & rD & rA & rB & cond2131=0b00010000000 {}
+:fmul rD, rA, rB is op05=0b010110 & rD & rA & rB & cond2131=0b00100000000 {}
+:fdiv rD, rA, rB is op05=0b010110 & rD & rA & rB & cond2131=0b00110000000 {}
+:fcmp rD, rA, rB is op05=0b010110 & rD & rA & rB & cond2131=0b10000000000 {}
+:flt rD, rA is op05=0b010110 & rD & rA & 0 & cond2131=0b01010000000 {}
+:fint rD, rA is op05=0b010110 & rD & rA & 0 & cond2131=0b01100000000 {}
+:fsqrt rD, rA is op05=0b010110 & rD & rA & 0 & cond2131=0b01110000000 {}
+:muli rD, rA, imm is op05=0b011000 & rD & rA & imm {}
+:bsrli rD, rA, imm is op05=0b011001 & rD & rA & bar1620=0b00000 & bar2126=0b000000 & imms
+:bsrai rD, rA, imm is op05=0b011001 & rD & rA & bar1620=0b00000 & bar2126=0b010000 & imms
+:bslli rD, rA, imm is op05=0b011001 & rD & rA & bar1620=0b00000 & bar2126=0b100000 & imms
+:bsefi rD, rA, imm is op05=0b011001 & rD & rA & bar1620=0b01000 & immw & 0 & imms
+:bsifi rD, rA, imm is op05=0b011001 & rD & rA & bar1620=0b10000 & immw & 0 & imms
 #:get rD, FSLx
 #:put rD, FSLx
-# :or rD, rA, rB is op05=0b100000 & rD & rA & rB & cond2131=0b00000000000 {}
-# :pcmpbf rD, rA, rB
-# :and rD, rA, rB
-# :pcmpeq rD, rA, rB
-# :xor rD, rA, rB
-# :andn rD, rA, rB
-# :pcmpne rD, rA, rB
-# :clz rD, rA
-# :sext8 rD, rA
-# :sext16 rD, rA
-# :sra rD, rA
-# :src rD, rA
-# :srl rD, rA
-# :swapb rD, rA
-# :swaph rD, rA
-# :wdc rA, rB
-# :wic rA, rB
-# :mfs rD, sA              ####Sa?
-# :msrclr rD, imm
-# :msrset rD, imm
-# :mts sD, rA
-# :br rB
-# :brk rD, rB
-# :beq rA, rB
-# :bge rA, rB
-# :bgt rA, rB
-# :ble rA, rB
-# :blt rA, rB
-# :bne rA, rB
-# :ori rD, rA, imm
-# :andi rD, rA, imm
-# :xori rD, rA, imm
-# :andni rD, rA, imm
-# :imm imm
-# :rtbd rA, imm
-# :rtid rA, imm
-# :rted rA, imm
-:rtsd rA, imm is op05=0b101101 & rA & imm {}
-# :bri imm
-# :brki rD, imm
-# :mbar imm
-# :beqi rA, imm
-# :bgei rA, imm
-# :bgti rA, imm
-# :blei rA, imm
-# :blti rA, imm
-# :bnei rA, imm
-# :lbu rD, rA, rB
-# :lhu rD, rA, rB
-# :lw rD, rA, rB
-# :lwx rD, rA, rB
-# :sb rD, rA, rB
-# :sh rD, rA, rB
-# :sw rD, rA, rB
-# :swx rD, rA, rB
-# :lbui rD, rA, imm
-# :lhui rD, rA, imm
-# :lwi rD, rA, imm
-# :sbi rD, rA, imm
-# :shi rD, rA, imm
-# :swi rD, rA, imm
+:or rD, rA, rB is op05=0b100000 & rD & rA & rB & cond2131=0b00000000000 {}
+:pcmpbf rD, rA, rB is op05=0b100000 & rD & rA & rB & cond2131=0b10000000000 {}
+:and rD, rA, rB is op05=0b100001 & rD & rA & rB & cond2131=0b00000000000 {}
+:pcmpeq rD, rA, rB is op05=0b100010 & rD & rA & rB & cond2131=10000000000 {}
+:xor rD, rA, rB is op05=0b100010 & rD & rA & rB & cond2131=0b00000000000 {}
+:andn rD, rA, rB is op05=0b100011 & rD & rA & rB & cond2131=0b00000000000 {}
+:pcmpne rD, rA, rB is op05=0b100011 & rD & rA & rB & cond2131=10000000000 {}
+:clz rD, rA is op05=0b100100 & rD & rA & cond1631=0000000011100000 {}
+:sext8 rD, rA is op05=0b100100 & rD & rA & cond1631=0000000001100000 {}
+:sext16 rD, rA is op05=0b100100 & rD & rA & cond1631=0000000001100001 {}
+:sra rD, rA is op05=0b100100 & rD & rA & cond1631=0000000000000001 {}
+:src rD, rA is op05=0b100100 & rD & rA & cond1631=0000000000100001 {}
+:srl rD, rA is op05=0b100100 & rD & rA & cond1631=0000000001000001 {}
+#:swapb rD, rA
+#:swaph rD, rA
+#:wdc rA, rB
+#:wic rA, rB
+#:mfs rD, sA              ####Sa?
+#:msrclr rD, imm
+#:msrset rD, imm
+#:mts sD, rA
+#:br rB
+#:brk rD, rB
+#:beq rA, rB
+#:bge rA, rB
+#:bgt rA, rB
+#:ble rA, rB
+#:blt rA, rB
+#:bne rA, rB
+#:ori rD, rA, imm
+#:andi rD, rA, imm
+#:xori rD, rA, imm
+#:andni rD, rA, imm
+#:imm imm
+#:rtbd rA, imm
+#:rtid rA, imm
+#:rted rA, imm
+:tsd rA, imm is op05=0b101101 & rA & imm {}
+#:bri imm
+#:brki rD, imm
+#:mbar imm
+#:beqi rA, imm
+#:bgei rA, imm
+#:bgti rA, imm
+#:blei rA, imm
+#:blti rA, imm
+#:bnei rA, imm
+#:lbu rD, rA, rB
+#:lhu rD, rA, rB
+#:lw rD, rA, rB
+#:lwx rD, rA, rB
+#:sb rD, rA, rB
+#:sh rD, rA, rB
+#:sw rD, rA, rB
+#:swx rD, rA, rB
+#:lbui rD, rA, imm
+#:lhui rD, rA, imm
+#:lwi rD, rA, imm
+#:sbi rD, rA, imm
+#:shi rD, rA, imm
+#:swi rD, rA, imm
