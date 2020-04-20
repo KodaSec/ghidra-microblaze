@@ -49,6 +49,7 @@ define token instr(32)
       rB = (16,20)
       cond2131 = (21,31)
       cond1631 = (16,31)
+      cond2627 = (26,27)
       imm = (16,31)
       immw = (21,25)
       imms = (27,31)
@@ -80,11 +81,11 @@ attach variables [ rD rA rB ] [ r0 r1 r2 r3 r4 r5 r6 r7	r8 r9 r10 r11 r12 r13 r1
 :mulh rD, rA, rB is op05=0b010000 & rD & rA & rB & cond2131=0b00000000001 {}
 :mulhu rD, rA, rB is op05=0b010000 & rD & rA & rB & cond2131=0b00000000011 {}
 :mulhsu rD, rA, rB is op05=0b010000 & rD & rA & rB & cond2131=0b00000000010 {}
-:bsrl rD, rA, rB is op05=010001 & rD & rA & rB & cond2131=0b00000000000 {}
-:bsra rD, rA, rB is op05=010001 & rD & rA & rB & cond2131=0b01000000000 {}
-:bsll rD, rA, rB is op05=010001 & rD & rA & rB & cond2131=0b10000000000 {}
-:idiv rD, rA, rB is op05=010010 & rD & rA & rB & cond2131=0b00000000000 {}
-:idivu rD, rA, rB is op05=010010 & rD & rA & rB & cond2131=0b00000000010 {}
+:bsrl rD, rA, rB is op05=0b010001 & rD & rA & rB & cond2131=0b00000000000 {}
+:bsra rD, rA, rB is op05=0b010001 & rD & rA & rB & cond2131=0b01000000000 {}
+:bsll rD, rA, rB is op05=0b010001 & rD & rA & rB & cond2131=0b10000000000 {}
+:idiv rD, rA, rB is op05=0b010010 & rD & rA & rB & cond2131=0b00000000000 {}
+:idivu rD, rA, rB is op05=0b010010 & rD & rA & rB & cond2131=0b00000000010 {}
 #:getd rD, rB
 #:putd rD, rB
 :fadd rD, rA, rB is op05=0b010110 & rD & rA & rB & cond2131=0b00000000000 {}
@@ -92,30 +93,30 @@ attach variables [ rD rA rB ] [ r0 r1 r2 r3 r4 r5 r6 r7	r8 r9 r10 r11 r12 r13 r1
 :fmul rD, rA, rB is op05=0b010110 & rD & rA & rB & cond2131=0b00100000000 {}
 :fdiv rD, rA, rB is op05=0b010110 & rD & rA & rB & cond2131=0b00110000000 {}
 :fcmp rD, rA, rB is op05=0b010110 & rD & rA & rB & cond2131=0b10000000000 {}
-:flt rD, rA is op05=0b010110 & rD & rA & 0 & cond2131=0b01010000000 {}
-:fint rD, rA is op05=0b010110 & rD & rA & 0 & cond2131=0b01100000000 {}
-:fsqrt rD, rA is op05=0b010110 & rD & rA & 0 & cond2131=0b01110000000 {}
+:flt rD, rA is op05=0b010110 & rD & rA & cond1631=0b0000001010000000 {}
+:fint rD, rA is op05=0b010110 & rD & rA & cond1631=0b0000001100000000 {}	
+:fsqrt rD, rA is op05=0b010110 & rD & rA & cond1631=0b0000001110000000 {}
 :muli rD, rA, imm is op05=0b011000 & rD & rA & imm {}
-:bsrli rD, rA, imm is op05=0b011001 & rD & rA & bar1620=0b00000 & bar2126=0b000000 & imms
-:bsrai rD, rA, imm is op05=0b011001 & rD & rA & bar1620=0b00000 & bar2126=0b010000 & imms
-:bslli rD, rA, imm is op05=0b011001 & rD & rA & bar1620=0b00000 & bar2126=0b100000 & imms
-:bsefi rD, rA, imm is op05=0b011001 & rD & rA & bar1620=0b01000 & immw & 0 & imms
-:bsifi rD, rA, imm is op05=0b011001 & rD & rA & bar1620=0b10000 & immw & 0 & imms
+:bsrli rD, rA, imms is op05=0b011001 & rD & rA & bar1620=0b00000 & bar2126=0b000000 & imms {}
+:bsrai rD, rA, imms is op05=0b011001 & rD & rA & bar1620=0b00000 & bar2126=0b010000 & imms {}
+:bslli rD, rA, imms is op05=0b011001 & rD & rA & bar1620=0b00000 & bar2126=0b100000 & imms {}
+:bsefi rD, rA, immw, imms is op05=0b011001 & rD & rA & bar1620=0b01000 & immw & cond2627=0 & imms {}
+:bsifi rD, rA, immw, imms is op05=0b011001 & rD & rA & bar1620=0b10000 & immw & cond2627=0 & imms {}
 #:get rD, FSLx
 #:put rD, FSLx
 :or rD, rA, rB is op05=0b100000 & rD & rA & rB & cond2131=0b00000000000 {}
 :pcmpbf rD, rA, rB is op05=0b100000 & rD & rA & rB & cond2131=0b10000000000 {}
 :and rD, rA, rB is op05=0b100001 & rD & rA & rB & cond2131=0b00000000000 {}
-:pcmpeq rD, rA, rB is op05=0b100010 & rD & rA & rB & cond2131=10000000000 {}
+:pcmpeq rD, rA, rB is op05=0b100010 & rD & rA & rB & cond2131=0b10000000000 {}
 :xor rD, rA, rB is op05=0b100010 & rD & rA & rB & cond2131=0b00000000000 {}
 :andn rD, rA, rB is op05=0b100011 & rD & rA & rB & cond2131=0b00000000000 {}
-:pcmpne rD, rA, rB is op05=0b100011 & rD & rA & rB & cond2131=10000000000 {}
-:clz rD, rA is op05=0b100100 & rD & rA & cond1631=0000000011100000 {}
-:sext8 rD, rA is op05=0b100100 & rD & rA & cond1631=0000000001100000 {}
-:sext16 rD, rA is op05=0b100100 & rD & rA & cond1631=0000000001100001 {}
-:sra rD, rA is op05=0b100100 & rD & rA & cond1631=0000000000000001 {}
-:src rD, rA is op05=0b100100 & rD & rA & cond1631=0000000000100001 {}
-:srl rD, rA is op05=0b100100 & rD & rA & cond1631=0000000001000001 {}
+:pcmpne rD, rA, rB is op05=0b100011 & rD & rA & rB & cond2131=0b10000000000 {}
+:clz rD, rA is op05=0b100100 & rD & rA & cond1631=0b0000000011100000 {}
+:sext8 rD, rA is op05=0b100100 & rD & rA & cond1631=0b0000000001100000 {}
+:sext16 rD, rA is op05=0b100100 & rD & rA & cond1631=0b0000000001100001 {}
+:sra rD, rA is op05=0b100100 & rD & rA & cond1631=0b0000000000000001 {}
+:src rD, rA is op05=0b100100 & rD & rA & cond1631=0b0000000000100001 {}
+:srl rD, rA is op05=0b100100 & rD & rA & cond1631=0b0000000001000001 {}
 #:swapb rD, rA
 #:swaph rD, rA
 #:wdc rA, rB
