@@ -50,11 +50,16 @@ define token instr(32)
       cd0010 = (0,10)
       cd0015 = (0,15)
       cd0505 = (5,5)
+      cd1620 = (16,20)
+      cd2125 = (21,25)
       imm = (0,15)
       immw = (6,10)
       imms = (0,4)
+      imm3 = (21,25)
+      imm14= (0,13)
       bs1115 = (11,15)
       bs0510 = (5,10)
+      zr1415 = (14,15)
 ;
 
 attach variables [ rD rA rB ] [ r0 r1 r2 r3 r4 r5 r6 r7	r8 r9 r10 r11 r12 r13 r14 r15 r16 r17 r18 r19 r20 r21 r22 r23 r24 r25 r26 r27 r28 r29 r30 r31 ];
@@ -93,7 +98,13 @@ attach variables [ rD rA rB ] [ r0 r1 r2 r3 r4 r5 r6 r7	r8 r9 r10 r11 r12 r13 r1
 :frsub rD, rA, rB is op2631=0b010110 & rD & rA & rB & cd0010=0b00010000000 unimpl
 :fmul rD, rA, rB is op2631=0b010110 & rD & rA & rB & cd0010=0b00100000000 unimpl
 :fdiv rD, rA, rB is op2631=0b010110 & rD & rA & rB & cd0010=0b00110000000 unimpl
-:fcmp rD, rA, rB is op2631=0b010110 & rD & rA & rB & cd0010=0b10000000000 unimpl
+:fcmp.un rD, rA, rB is op2631=0b010110 & rD & rA & rB & cd0010=0b01000000000 unimpl
+:fcmp.lt rD, rA, rB is op2631=0b010110 & rD & rA & rB & cd0010=0b01000010000 unimpl
+:fcmp.eq rD, rA, rB is op2631=0b010110 & rD & rA & rB & cd0010=0b01000100000 unimpl
+:fcmp.le rD, rA, rB is op2631=0b010110 & rD & rA & rB & cd0010=0b01000110000 unimpl
+:fcmp.gt rD, rA, rB is op2631=0b010110 & rD & rA & rB & cd0010=0b01001000000 unimpl
+:fcmp.ne rD, rA, rB is op2631=0b010110 & rD & rA & rB & cd0010=0b01001010000 unimpl
+:fcmp.ge rD, rA, rB is op2631=0b010110 & rD & rA & rB & cd0010=0b01001100000 unimpl
 :flt rD, rA is op2631=0b010110 & rD & rA & cd0015=0b0000001010000000 unimpl
 :fint rD, rA is op2631=0b010110 & rD & rA & cd0015=0b0000001100000000 unimpl	
 :fsqrt rD, rA is op2631=0b010110 & rD & rA & cd0015=0b0000001110000000 unimpl
@@ -107,64 +118,100 @@ attach variables [ rD rA rB ] [ r0 r1 r2 r3 r4 r5 r6 r7	r8 r9 r10 r11 r12 r13 r1
 #:put rD, FSLx
 :or rD, rA, rB is op2631=0b100000 & rD & rA & rB & cd0010=0b00000000000 unimpl
 :pcmpbf rD, rA, rB is op2631=0b100000 & rD & rA & rB & cd0010=0b10000000000 unimpl
-
 :and rD, rA, rB is op2631=0b100001 & rD & rA & rB & cd0010=0b00000000000 unimpl
-
-:pcmpeq rD, rA, rB is op2631=0b100010 & rD & rA & rB & cd0010=0b10000000000 unimpl
 :xor rD, rA, rB is op2631=0b100010 & rD & rA & rB & cd0010=0b00000000000 unimpl
+:pcmpeq rD, rA, rB is op2631=0b100010 & rD & rA & rB & cd0010=0b10000000000 unimpl
 :andn rD, rA, rB is op2631=0b100011 & rD & rA & rB & cd0010=0b00000000000 unimpl
 :pcmpne rD, rA, rB is op2631=0b100011 & rD & rA & rB & cd0010=0b10000000000 unimpl
-:clz rD, rA is op2631=0b100100 & rD & rA & cd0015=0b0000000011100000 unimpl
-:sext8 rD, rA is op2631=0b100100 & rD & rA & cd0015=0b0000000001100000 unimpl
-:sext16 rD, rA is op2631=0b100100 & rD & rA & cd0015=0b0000000001100001 unimpl
 :sra rD, rA is op2631=0b100100 & rD & rA & cd0015=0b0000000000000001 unimpl
 :src rD, rA is op2631=0b100100 & rD & rA & cd0015=0b0000000000100001 unimpl
 :srl rD, rA is op2631=0b100100 & rD & rA & cd0015=0b0000000001000001 unimpl
-#:swapb rD, rA
-#:swaph rD, rA
-#:wdc rA, rB
-#:wic rA, rB
-#:mfs rD, sA              ####Sa?
-#:msrclr rD, imm
-#:msrset rD, imm
+:sext8 rD, rA is op2631=0b100100 & rD & rA & cd0015=0b0000000001100000 unimpl
+:sext16 rD, rA is op2631=0b100100 & rD & rA & cd0015=0b0000000001100001 unimpl
+:clz rD, rA is op2631=0b100100 & rD & rA & cd0015=0b0000000011100000 unimpl
+:swapb rD, rA is op2631=0b100100 & rD & rA & cd0015=0b0000000111100000 unimpl
+:swaph rD, rA is op2631=0b100100 & rD & rA & cd0015=0b0000000111100010 unimpl
+:wic rA, rB is op2631=0b100100 & cd2125=0b00000 & rA & rB & cd0010=0b00001101000 unimpl
+:wdc rA, rB is op2631=0b100100 & cd2125=0b00000 & rA & rB & cd0010=0b00001100100 unimpl
+:wdc.flush rA, rB is op2631=0b100100 & cd2125=0b00000 & rA & rB & cd0010=0b00001110100 unimpl
+:wdc.clear rA, rB is op2631=0b100100 & cd2125=0b00000 & rA & rB & cd0010=0b00001100110 unimpl
+:wdc.clear.ea rA, rB is op2631=0b100100 & cd2125=0b00000 & rA & rB & cd0010=0b00011100110 unimpl
 #:mts sD, rA
-#:br rB
-#:brk rD, rB
-#:beq rA, rB
-#:bge rA, rB
-#:bgt rA, rB
-#:ble rA, rB
-#:blt rA, rB
-#:bne rA, rB
-#:ori rD, rA, imm
+#:mtse sD, rA
+#:mfs rD, sA
+#:mfse rD, sA
+#:msrclr rD, imm is op2631=0b100101 & rD & cd1620=0b00001 & zr1415=0 & imm14 unimpl
+#:msrset rD, imm is op2631=0b100101 & rD & cd1620=0b00000 & zr1415=0 & imm14 unimpl
+:br rB is op2631=0b100110 & cd2125=0 & cd1620=0 & rB & cd0010=0b00000000000 unimpl
+:brd rB is op2631=0b100110 & cd2125=0 & cd1620=0b10000 & rB & cd0010=0b00000000000 unimpl
+:brld rD, rB is op2631=0b100110 & rD & cd1620=0b10100 & rB & cd0010=0b00000000000 unimpl
+:bra rB is op2631=0b100110 & cd2125=0 & cd1620=0b01000 & rB & cd0010=0b00000000000 unimpl
+:brad rB is op2631=0b100110 & cd2125=0 & cd1620=0b11000 & rB & cd0010=0b00000000000 unimpl
+:brald rD, rB is op2631=0b100110 & rD & cd1620=0b11100 & rB & cd0010=0b00000000000 unimpl
+:brk rD, rB is op2631=0b100110 & rD & cd1620=0b01100 & rB & cd0010=0b00000000000 unimpl
+:beq rA, rB is op2631=0b100111 & cd2125=0b00000 & rA & rB & cd0010=0b00000000000 unimpl
+:bne rA, rB is op2631=0b100111 & cd2125=0b00001 & rA & rB & cd0010=0b00000000000 unimpl
+:blt rA, rB is op2631=0b100111 & cd2125=0b00010 & rA & rB & cd0010=0b00000000000 unimpl
+:ble rA, rB is op2631=0b100111 & cd2125=0b00011 & rA & rB & cd0010=0b00000000000 unimpl
+:bgt rA, rB is op2631=0b100111 & cd2125=0b00100 & rA & rB & cd0010=0b00000000000 unimpl
+:bge rA, rB is op2631=0b100111 & cd2125=0b00101 & rA & rB & cd0010=0b00000000000 unimpl
+:beqd rA, rB is op2631=0b100111 & cd2125=0b10000 & rA & rB & cd0010=0b00000000000 unimpl
+:bned rA, rB is op2631=0b100111 & cd2125=0b10001 & rA & rB & cd0010=0b00000000000 unimpl
+:bltd rA, rB is op2631=0b100111 & cd2125=0b10010 & rA & rB & cd0010=0b00000000000 unimpl
+:bled rA, rB is op2631=0b100111 & cd2125=0b10011 & rA & rB & cd0010=0b00000000000 unimpl
+:bgtd rA, rB is op2631=0b100111 & cd2125=0b10100 & rA & rB & cd0010=0b00000000000 unimpl
+:bged rA, rB is op2631=0b100111 & cd2125=0b10101 & rA & rB & cd0010=0b00000000000 unimpl
+:ori rD, rA, imm is op2631=0b101000 & rD & rA & imm unimpl
 :andi rD, rA, imm is op2631=0b101001 & rD & rA & imm unimpl
-#:xori rD, rA, imm
+:xori rD, rA, imm is op2631=0b101010 & rD & rA & imm unimpl
 :andni rD, rA, imm is op2631=0b101011 & rD & rA & imm unimpl
-#:imm imm
-#:rtbd rA, imm
-#:rtid rA, imm
-#:rted rA, imm
-:tsd rA, imm is op2631=0b101101 & rA & imm unimpl
-#:bri imm
-#:brki rD, imm
-#:mbar imm
-#:beqi rA, imm
-#:bgei rA, imm
-#:bgti rA, imm
-#:blei rA, imm
-#:blti rA, imm
-#:bnei rA, imm
-#:lbu rD, rA, rB
-#:lhu rD, rA, rB
-#:lw rD, rA, rB
-#:lwx rD, rA, rB
-#:sb rD, rA, rB
-#:sh rD, rA, rB
-#:sw rD, rA, rB
-#:swx rD, rA, rB
-#:lbui rD, rA, imm
-#:lhui rD, rA, imm
-#:lwi rD, rA, imm
-#:sbi rD, rA, imm
-#:shi rD, rA, imm
-#:swi rD, rA, imm
+:imm imm is op2631=0b101100 & cd2125=0b00000 & cd1620=0b00000 & imm unimpl
+:rtsd rA, imm is op2631=0b101101 & cd2125=0b10000 & rA & imm unimpl
+:rtid rA, imm is op2631=0b101101 & cd2125=0b10001 & rA & imm unimpl
+:rtbd rA, imm is op2631=0b101101 & cd2125=0b10010 & rA & imm unimpl
+:rted rA, imm is op2631=0b101101 & cd2125=0b10100 & rA & imm unimpl
+:bri imm is op2631=0b101110 & cd2125=0 & cd1620=0 & imm unimpl
+:mbar imm3 is op2631=0b101110 & imm3 & cd1620=0b00010 & cd0015=0b0000000000000100 unimpl
+:brid imm is op2631=0b101110 & cd2125=0 & cd1620=0b10000 & imm unimpl
+:brlid rD, imm is op2631=0b101110 & rD & cd1620=0b10100 & imm unimpl
+:brai imm is op2631=0b101110 & cd2125=0 & cd1620=0b01000 & imm unimpl
+:braid imm is op2631=0b101110 & cd2125=0 & cd1620=0b11000 & imm unimpl
+:bralid rD is op2631=0b101110 & rD & cd1620=0b11100 & imm unimpl
+:brki rD, imm is op2631=0b101110 & rD & cd1620=0b01100 & imm unimpl
+:beqi rA, imm is op2631=0b101111 & cd2125=0b00000 & rA & imm unimpl
+:bnei rA, imm is op2631=0b101111 & cd2125=0b00001 & rA & imm unimpl
+:blti rA, imm is op2631=0b101111 & cd2125=0b00010 & rA & imm unimpl
+:blei rA, imm is op2631=0b101111 & cd2125=0b00011 & rA & imm unimpl
+:bgti rA, imm is op2631=0b101111 & cd2125=0b00100 & rA & imm unimpl
+:bgei rA, imm is op2631=0b101111 & cd2125=0b00101 & rA & imm unimpl
+:beqid rA, imm is op2631=0b101111 & cd2125=0b10000 & rA & imm unimpl
+:bneid rA, imm is op2631=0b101111 & cd2125=0b10001 & rA & imm unimpl
+:bltid rA, imm is op2631=0b101111 & cd2125=0b10010 & rA & imm unimpl
+:bleid rA, imm is op2631=0b101111 & cd2125=0b10011 & rA & imm unimpl
+:bgtid rA, imm is op2631=0b101111 & cd2125=0b10100 & rA & imm unimpl
+:bgeid rA, imm is op2631=0b101111 & cd2125=0b10101 & rA & imm unimpl
+:lbu rD, rA, rB is op2631=0b110000 & rD & rA & rB & cd0010=0b00000000000 unimpl
+:lbur rD, rA, rB is op2631=0b110000 & rD & rA & rB & cd0010=0b01000000000 unimpl
+:lbuea rD, rA, rB is op2631=0b110000 & rD & rA & rB & cd0010=0b00010000000 unimpl
+:lhu rD, rA, rB is op2631=0b110001 & rD & rA & rB & cd0010=0b00000000000 unimpl
+:lhur rD, rA, rB is op2631=0b110001 & rD & rA & rB & cd0010=0b01000000000 unimpl
+:lhuea rD, rA, rB is op2631=0b110001 & rD & rA & rB & cd0010=0b00010000000 unimpl
+:lw rD, rA, rB is op2631=0b110010 & rD & rA & rB & cd0010=0b00000000000 unimpl
+:lwr rD, rA, rB is op2631=0b110010 & rD & rA & rB & cd0010=0b01000000000 unimpl
+:lwx rD, rA, rB is op2631=0b110010 & rD & rA & rB & cd0010=0b10000000000 unimpl
+:lwea rD, rA, rB is op2631=0b110010 & rD & rA & rB & cd0010=0b00010000000 unimpl
+:sb rD, rA, rB is op2631=0b110100 & rD & rA & rB & cd0010=0b00000000000 unimpl
+:sbr rD, rA, rB is op2631=0b110100 & rD & rA & rB & cd0010=0b01000000000 unimpl
+:sh rD, rA, rB is op2631=0b110101 & rD & rA & rB & cd0010=0b00000000000 unimpl
+:shr rD, rA, rB is op2631=0b110101 & rD & rA & rB & cd0010=0b01000000000 unimpl
+:shea rD, rA, rB is op2631=0b110101 & rD & rA & rB & cd0010=0b00010000000 unimpl
+:sw rD, rA, rB is op2631=0b110110 & rD & rA & rB & cd0010=0b00000000000 unimpl
+:swr rD, rA, rB is op2631=0b110110 & rD & rA & rB & cd0010=0b01000000000 unimpl
+:swx rD, rA, rB is op2631=0b110110 & rD & rA & rB & cd0010=0b10000000000 unimpl
+:swea rD, rA, rB is op2631=0b110110 & rD & rA & rB & cd0010=0b00010000000 unimpl
+:lbui rD, rA, imm is op2631=0b111000 & rD & rA & imm unimpl
+:lhui rD, rA, imm is op2631=0b111001 & rD & rA & imm unimpl
+:lwi rD, rA, imm is op2631=0b111010 & rD & rA & imm unimpl
+:sbi rD, rA, imm is op2631=0b111100 & rD & rA & imm unimpl
+:shi rD, rA, imm is op2631=0b111101 & rD & rA & imm unimpl
+:swi rD, rA, imm is op2631=0b111110 & rD & rA & imm unimpl
