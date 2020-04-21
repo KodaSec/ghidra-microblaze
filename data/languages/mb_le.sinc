@@ -47,9 +47,12 @@ define token instr(32)
       rD = (21,25)
       rA = (16,20)
       rB = (11,15)
+      rS = (0,13)
       cd0010 = (0,10)
       cd0015 = (0,15)
+      cd0415 = (4,15)
       cd0505 = (5,5)
+      cd1415 = (14,15)
       cd1620 = (16,20)
       cd2125 = (21,25)
       imm = (0,15)
@@ -60,10 +63,10 @@ define token instr(32)
       bs1115 = (11,15)
       bs0510 = (5,10)
       zr1415 = (14,15)
+      fsl = (0,3)
 ;
 
 attach variables [ rD rA rB ] [ r0 r1 r2 r3 r4 r5 r6 r7	r8 r9 r10 r11 r12 r13 r14 r15 r16 r17 r18 r19 r20 r21 r22 r23 r24 r25 r26 r27 r28 r29 r30 r31 ];
-
 
 :add rD, rA, rB is op2631=0b000000 & rD & rA & rB & cd0010=0b00000000000 unimpl
 :rsub rD, rA, rB is op2631=0b000001 & rD & rA & rB & cd0010=0b00000000000 unimpl
@@ -92,8 +95,22 @@ attach variables [ rD rA rB ] [ r0 r1 r2 r3 r4 r5 r6 r7	r8 r9 r10 r11 r12 r13 r1
 :bsll rD, rA, rB is op2631=0b010001 & rD & rA & rB & cd0010=0b10000000000 unimpl
 :idiv rD, rA, rB is op2631=0b010010 & rD & rA & rB & cd0010=0b00000000000 unimpl
 :idivu rD, rA, rB is op2631=0b010010 & rD & rA & rB & cd0010=0b00000000010 unimpl
-#:getd rD, rB
-#:putd rD, rB
+:tneagetd.t rD, rB is op2631=0b110010 & rD & rB & cd1620=0 & cd0010=0b000100000000 unimpl
+:tneagetd.n rD, rB is op2631=0b110010 & rD & rB & cd1620=0 & cd0010=0b010000000000 unimpl
+:tneagetd.e rD, rB is op2631=0b110010 & rD & rB & cd1620=0 & cd0010=0b000000100000 unimpl
+:tneagetd.a rD, rB is op2631=0b110010 & rD & rB & cd1620=0 & cd0010=0b000001000000 unimpl
+:tnecagetd.t rD, rB is op2631=0b110010 & rD & rB & cd1620=0 & cd0010=0b00110000000 unimpl
+:tnecagetd.n rD, rB is op2631=0b110010 & rD & rB & cd1620=0 & cd0010=0b01100000000 unimpl
+:tnecagetd.e rD, rB is op2631=0b110010 & rD & rB & cd1620=0 & cd0010=0b00100100000 unimpl
+:tnecagetd.a rD, rB is op2631=0b110010 & rD & rB & cd1620=0 & cd0010=0b00101000000 unimpl
+:naputd.n rA, rB is op2631=0b010011 & cd2125=0 & rA & rB & cd0010=0b11000000000 unimpl
+:naputd.a rA, rB is op2631=0b010011 & cd2125=0 & rA & rB & cd0010=0b10001000000 unimpl
+:tnaputd.n rA, rB is op2631=0b010011 & cd2125=0 & rA & rB & cd0010=0b11010000000 unimpl
+:tnaputd.a rA, rB is op2631=0b010011 & cd2125=0 & rA & rB & cd0010=0b10011000000 unimpl
+:ncaputd.n rA, rB is op2631=0b010011 & cd2125=0 & rA & rB & cd0010=0b11100000000 unimpl
+:ncaputd.a rA, rB is op2631=0b010011 & cd2125=0 & rA & rB & cd0010=0b10101000000 unimpl
+:tncaputd.n rA, rB is op2631=0b010011 & cd2125=0 & rA & rB & cd0010=0b1111000000 unimpl
+:tncaputd.a rA, rB is op2631=0b010011 & cd2125=0 & rA & rB & cd0010=0b1011100000 unimpl
 :fadd rD, rA, rB is op2631=0b010110 & rD & rA & rB & cd0010=0b00000000000 unimpl
 :frsub rD, rA, rB is op2631=0b010110 & rD & rA & rB & cd0010=0b00010000000 unimpl
 :fmul rD, rA, rB is op2631=0b010110 & rD & rA & rB & cd0010=0b00100000000 unimpl
@@ -106,7 +123,7 @@ attach variables [ rD rA rB ] [ r0 r1 r2 r3 r4 r5 r6 r7	r8 r9 r10 r11 r12 r13 r1
 :fcmp.ne rD, rA, rB is op2631=0b010110 & rD & rA & rB & cd0010=0b01001010000 unimpl
 :fcmp.ge rD, rA, rB is op2631=0b010110 & rD & rA & rB & cd0010=0b01001100000 unimpl
 :flt rD, rA is op2631=0b010110 & rD & rA & cd0015=0b0000001010000000 unimpl
-:fint rD, rA is op2631=0b010110 & rD & rA & cd0015=0b0000001100000000 unimpl	
+:fint rD, rA is op2631=0b010110 & rD & rA & cd0015=0b0000001100000000 unimpl
 :fsqrt rD, rA is op2631=0b010110 & rD & rA & cd0015=0b0000001110000000 unimpl
 :muli rD, rA, imm is op2631=0b011000 & rD & rA & imm unimpl
 :bsrli rD, rA, imms is op2631=0b011001 & rD & rA & bs1115=0b00000 & bs0510=0b000000 & imms unimpl
@@ -114,8 +131,22 @@ attach variables [ rD rA rB ] [ r0 r1 r2 r3 r4 r5 r6 r7	r8 r9 r10 r11 r12 r13 r1
 :bslli rD, rA, imms is op2631=0b011001 & rD & rA & bs1115=0b00000 & bs0510=0b100000 & imms unimpl
 :bsefi rD, rA, immw, imms is op2631=0b011001 & rD & rA & bs1115=0b01000 & immw & cd0505=0 & imms unimpl
 :bsifi rD, rA, immw, imms is op2631=0b011001 & rD & rA & bs1115=0b10000 & immw & cd0505=0 & imms unimpl
-#:get rD, FSLx
-#:put rD, FSLx
+:tneaget.t rD, fsl is op2631=0b011011 & rD & cd1620=0 & cd0415=0b000100000000 & fsl unimpl
+:tneaget.n rD, fsl is op2631=0b011011 & rD & cd1620=0 & cd0415=0b010000000000 & fsl unimpl
+:tneaget.e rD, fsl is op2631=0b011011 & rD & cd1620=0 & cd0415=0b000001000000 & fsl unimpl
+:tneaget.a rD, fsl is op2631=0b011011 & rD & cd1620=0 & cd0415=0b000010000000 & fsl unimpl
+:tnecaget.t rD, fsl is op2631=0b011011 & rD & cd1620=0 & cd0415=0b001100000000 & fsl unimpl
+:tnecaget.n rD, fsl is op2631=0b011011 & rD & cd1620=0 & cd0415=0b011000000000 & fsl unimpl
+:tnecaget.e rD, fsl is op2631=0b011011 & rD & cd1620=0 & cd0415=0b001001000000 & fsl unimpl
+:tnecaget.a rD, fsl is op2631=0b011011 & rD & cd1620=0 & cd0415=0b001010000000 & fsl unimpl
+:naput.n rA, fsl is op2631=0b011011 & cd2125=0 & rA & cd0415=0b110000000000 & fsl unimpl
+:naput.a rA, fsl is op2631=0b011011 & cd2125=0 & rA & cd0415=0b100010000000 & fsl unimpl
+:tnaput.n rA, fsl is op2631=0b011011 & cd2125=0 & rA & cd0415=0b110100000000 & fsl unimpl
+:tnaput.a rA, fsl is op2631=0b011011 & cd2125=0 & rA & cd0415=0b100110000000 & fsl unimpl
+:ncaput.n rA, fsl is op2631=0b011011 & cd2125=0 & rA & cd0415=0b111000000000 & fsl unimpl
+:ncaput.a rA, fsl is op2631=0b011011 & cd2125=0 & rA & cd0415=0b101000000000 & fsl unimpl
+:tncaput.n rA, fsl is op2631=0b011011 & cd2125=0 & rA & cd0415=0b111100000000 & fsl unimpl
+:tncaput.a rA, fsl is op2631=0b011011 & cd2125=0 & rA & cd0415=0b101110000000 & fsl unimpl
 :or rD, rA, rB is op2631=0b100000 & rD & rA & rB & cd0010=0b00000000000 unimpl
 :pcmpbf rD, rA, rB is op2631=0b100000 & rD & rA & rB & cd0010=0b10000000000 unimpl
 :and rD, rA, rB is op2631=0b100001 & rD & rA & rB & cd0010=0b00000000000 unimpl
@@ -136,12 +167,12 @@ attach variables [ rD rA rB ] [ r0 r1 r2 r3 r4 r5 r6 r7	r8 r9 r10 r11 r12 r13 r1
 :wdc.flush rA, rB is op2631=0b100100 & cd2125=0b00000 & rA & rB & cd0010=0b00001110100 unimpl
 :wdc.clear rA, rB is op2631=0b100100 & cd2125=0b00000 & rA & rB & cd0010=0b00001100110 unimpl
 :wdc.clear.ea rA, rB is op2631=0b100100 & cd2125=0b00000 & rA & rB & cd0010=0b00011100110 unimpl
-#:mts sD, rA
-#:mtse sD, rA
-#:mfs rD, sA
-#:mfse rD, sA
-#:msrclr rD, imm is op2631=0b100101 & rD & cd1620=0b00001 & zr1415=0 & imm14 unimpl
-#:msrset rD, imm is op2631=0b100101 & rD & cd1620=0b00000 & zr1415=0 & imm14 unimpl
+:mts rS, rA is op2631=0b100101 & cd2125=0 & rA & cd1415=0b11 & rS unimpl
+:mtse rS, rA is op2631=0b100101 & cd2125=0b01000 & rA & cd1415=0b11 & rS unimpl
+:mfs rD, rS is op2631=0b100101 & rD & cd1620=0 & cd1415=0b11 & rS unimpl
+:mfse rD, rS is op2631=0b100101 & rD & cd1620=0b01000 & cd1415=0b10 & rS unimpl
+:msrclr rD, imm14 is op2631=0b100101 & rD & cd1620=0b00001 & zr1415=0 & imm14 unimpl
+:msrset rD, imm14 is op2631=0b100101 & rD & cd1620=0b00000 & zr1415=0 & imm14 unimpl
 :br rB is op2631=0b100110 & cd2125=0 & cd1620=0 & rB & cd0010=0b00000000000 unimpl
 :brd rB is op2631=0b100110 & cd2125=0 & cd1620=0b10000 & rB & cd0010=0b00000000000 unimpl
 :brld rD, rB is op2631=0b100110 & rD & cd1620=0b10100 & rB & cd0010=0b00000000000 unimpl
