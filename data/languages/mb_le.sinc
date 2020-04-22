@@ -1,6 +1,3 @@
-# Xavier McCaig and Frank Tursi
-# Beginning SLEIGH Code for 32-bit MicroBlaze
-
 define endian     = $(ENDIAN);
 define alignment  = 4;
 
