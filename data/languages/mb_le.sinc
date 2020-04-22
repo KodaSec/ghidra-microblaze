@@ -16,34 +16,45 @@ define register offset=0x80 size=4
 define register offset=0xBC size=4
   [ pvr0 pvr1 pvr2 pvr3 pvr4 pvr5 pvr6 pvr7 pvr8 pvr9 pvr10 pvr11 pvr12 ] ;
 
-@define FSR_IO    "fsr[27,1]"
-@define FSR_DZ    "fsr[28,1]"
-@define FSR_OF    "fsr[29,1]"
-@define FSR_UF    "fsr[30,1]"
-@define FSR_DO    "fsr[31,1]"
+define register offset=0xF0 size=1
+  [ cf ] ;
 
-@define MSR_CC    "msr[0,32]"
-@define MSR_VMS   "msr[17,1]"
-@define MSR_VM    "msr[18,1]"
-@define MSR_UMS   "msr[19,1]"
-@define MSR_UM    "msr[20,1]"
-@define MSR_PVR   "msr[21,1]"
-@define MSR_EIP   "msr[22,1]"
-@define MSR_EE    "msr[23,1]"
-@define MSR_DCE   "msr[24,1]"
-@define MSR_DZO   "msr[25,1]"
-@define MSR_ICE   "msr[26,1]"
-@define MSR_FSL   "msr[27,1]"
-@define MSR_BIP   "msr[28,1]"
-@define MSR_C     "msr[29,1]"
-@define MSR_IE    "msr[30,1]"
+define bitrange cc=msr[0,1] #reserved omitted
+                vms=msr[17,1]
+                vm=msr[18,1]
+                ums=msr[19,1]
+                um=msr[20,1]
+                pvr=msr[21,1]
+                eip=msr[22,1]
+                ee=msr[23,1]
+                dce=msr[24,1]
+                dzo=msr[25,1]
+                ice=msr[26,1]
+                fsl=msr[27,1]
+                bip=msr[28,1]
+                c=msr[29,1]
+                ie=msr[30,1]
+;
 
-@define ESR_DS    "esr[19,1]"
-@define ESR_ESS   "esr[20,5]"
-@define ESR_EC    "esr[27,5]"
+define bitrange io=fsr[27,1]
+                dz=fsr[28,1]
+                of=fsr[29,1]
+                uf=fsr[30,1]
+                do=fsr[31,1]
+;
+
+define bitrange ds=esr[12,1]
+                ess=esr[5,7]
+                ec=esr[0,5]
+;
 
 define token instr(32)
       op2631 = (26,31)
+      op2931 = (29,31)
+      op0026 = (26,26)
+      op_k = (28,28)
+      op_c = (27,27)
+      op_rsub = (26,26)
       rD = (21,25)
       rA = (16,20)
       rB = (11,15)
@@ -68,136 +79,243 @@ define token instr(32)
 
 attach variables [ rD rA rB ] [ r0 r1 r2 r3 r4 r5 r6 r7	r8 r9 r10 r11 r12 r13 r14 r15 r16 r17 r18 r19 r20 r21 r22 r23 r24 r25 r26 r27 r28 r29 r30 r31 ];
 
-:add rD, rA, rB is op2631=0b000000 & rD & rA & rB & cd0010=0b00000000000 {
+kp: "k" is op_k=1 { }
+kp:     is op_k=0 { c = cf; cc = cf; }
+
+cy: "c" is op_c=1 { rD = rD + c; }
+cy:     is op_c=0 { }
+cy:     is op_c=0 & op_rsub=0b1 { rD = rD + 1; }
+
+:add^kp^cy rD, rA, rB is op2931=0b000 & op_k & op_c & op_rsub=0b0 & rD & rA & rB & cd0010=0b00000000000 {
 	rD = rA + rB;
+  build cy;
+	cf = scarry(rA, rB);
+	build kp;
 }
-:rsub rD, rA, rB is op2631=0b000001 & rD & rA & rB & cd0010=0b00000000000 {
-	rD = ~rA + rB;
+
+:rsub^kp^cy rD, rA, rB is op2931=0b000 & op_k & op_c & op_rsub=0b1 & rD & rA & rB & cd0010=0b00000000000 {
+	rD = rB + ~rA;
+  cf = scarry(rA, rB);
+  build kp;
 }
-:addc rD, rA, rB is op2631=0b000010 & rD & rA & rB & cd0010=0b00000000000 unimpl
-:rsubc rD, rA, rB is op2631=0b000011 & rD & rA & rB & cd0010=0b00000000000 unimpl
-:addk rD, rA, rB is op2631=0b000100 & rD & rA & rB & cd0010=0b00000000000 unimpl
-:rsubk rD, rA, rB is op2631=0b000101 & rD & rA & rB & cd0010=0b00000000000 unimpl
+
 :cmp rD, rA, rB is op2631=0b000101 & rD & rA & rB & cd0010=0b00000000001 {
-	rD[0,31] = rB - rA;
-	rD[31,1] = (rA s> rB);
+	rD = rB + ~rA + 1;
+  rD[31,1] = (rA s> rB);
 }
+
 :cmpu rD, rA, rB is op2631=0b000101 & rD & rA & rB & cd0010=0b00000000011 {
-	rD[0,31] = rB - rA;
-	rD[31,1] = rA > rB;
+	rD = rB + ~rA + 1;
+	rD[31,1] = (rA > rB);
 }
-:addkc rD, rA, rB is op2631=0b000110 & rD & rA & rB & cd0010=0b00000000000 unimpl
-:rsubkc rD, rA, rB is op2631=0b000111 & rD & rA & rB & cd0010=0b00000000000 unimpl
-:addi rD, rA, imm  is op2631=0b001000 & rD & rA & imm {
-	rD = rA + imm;
+
+:addi^kp^cy rD, rA, imm is op2931=0b001 & op_k & op_c & op_rsub=0b0 & rD & rA & imm {
+  rD = rA + imm;
+  build cy;
+  cf = scarry(rA, imm);
+  build kp;
 }
-:rsubi rD, rA, imm is op2631=0b001001 & rD & rA & imm {
-	rD = ~rA + imm;
+
+:rsubi^kp^cy rD, rA, imm is op2931=0b001 & op_k & op_c & op_rsub=0b1 & rD & rA & imm {
+  rD = imm + ~rA;
+  cf = scarry(rA, imm);
+  build kp;
 }
-:addic rD, rA, imm is op2631=0b001010 & rD & rA & imm unimpl
-:rsubic rD, rA, imm is op2631=0b001011 & rD & rA & imm unimpl
-:addik rD, rA, imm is op2631=0b001100 & rD & rA & imm unimpl
-:rsubik rD, rA, imm is op2631=0b001101 & rD & rA & imm unimpl
-:addikc rD, rA, imm is op2631=0b001110 & rD & rA & imm unimpl
-:rsubikc rD, rA, imm is op2631=0b001111 & rD & rA & imm unimpl
+
 :mul rD, rA, rB is op2631=0b010000 & rD & rA & rB & cd0010=0b00000000000 {
-	rD = rA * rB;
+	rD = (rA * rB);
 }
+
 :mulh rD, rA, rB is op2631=0b010000 & rD & rA & rB & cd0010=0b00000000001 {
-	rD = (sext(rA) * sext(rB)) s>> 32; 
+	rD = (sext(rA) * sext(rB)) s>> 32;
 }
+
 :mulhu rD, rA, rB is op2631=0b010000 & rD & rA & rB & cd0010=0b00000000011 {
 	rD = (zext(rA) * zext(rB)) >> 32;
 }
+
 :mulhsu rD, rA, rB is op2631=0b010000 & rD & rA & rB & cd0010=0b00000000010 {
 	rD = (sext(rA) * zext(rB)) s>> 32;
 }
+
 :bsrl rD, rA, rB is op2631=0b010001 & rD & rA & rB & cd0010=0b00000000000 {
-	rD = rA >> rB;
+	rD = 0 & (rA >> rB);
 }
+
 :bsra rD, rA, rB is op2631=0b010001 & rD & rA & rB & cd0010=0b01000000000 {
 	rD = rA s>> rB;
 }
+
 :bsll rD, rA, rB is op2631=0b010001 & rD & rA & rB & cd0010=0b10000000000 {
-	rD = rA << rB;
+	rD = (rA << rB) & 0;
 }
+
 :idiv rD, rA, rB is op2631=0b010010 & rD & rA & rB & cd0010=0b00000000000 {
 	rD = rB s/ rA;
 }
+
 :idivu rD, rA, rB is op2631=0b010010 & rD & rA & rB & cd0010=0b00000000010 {
 	rD = rB / rA;
 }
+
 :tneagetd.t rD, rB is op2631=0b110010 & rD & rB & cd1620=0 & cd0010=0b000100000000 unimpl
+
 :tneagetd.n rD, rB is op2631=0b110010 & rD & rB & cd1620=0 & cd0010=0b010000000000 unimpl
+
 :tneagetd.e rD, rB is op2631=0b110010 & rD & rB & cd1620=0 & cd0010=0b000000100000 unimpl
+
 :tneagetd.a rD, rB is op2631=0b110010 & rD & rB & cd1620=0 & cd0010=0b000001000000 unimpl
+
 :tnecagetd.t rD, rB is op2631=0b110010 & rD & rB & cd1620=0 & cd0010=0b00110000000 unimpl
+
 :tnecagetd.n rD, rB is op2631=0b110010 & rD & rB & cd1620=0 & cd0010=0b01100000000 unimpl
+
 :tnecagetd.e rD, rB is op2631=0b110010 & rD & rB & cd1620=0 & cd0010=0b00100100000 unimpl
+
 :tnecagetd.a rD, rB is op2631=0b110010 & rD & rB & cd1620=0 & cd0010=0b00101000000 unimpl
+
 :naputd.n rA, rB is op2631=0b010011 & cd2125=0 & rA & rB & cd0010=0b11000000000 unimpl
+
 :naputd.a rA, rB is op2631=0b010011 & cd2125=0 & rA & rB & cd0010=0b10001000000 unimpl
+
 :tnaputd.n rA, rB is op2631=0b010011 & cd2125=0 & rA & rB & cd0010=0b11010000000 unimpl
+
 :tnaputd.a rA, rB is op2631=0b010011 & cd2125=0 & rA & rB & cd0010=0b10011000000 unimpl
+
 :ncaputd.n rA, rB is op2631=0b010011 & cd2125=0 & rA & rB & cd0010=0b11100000000 unimpl
+
 :ncaputd.a rA, rB is op2631=0b010011 & cd2125=0 & rA & rB & cd0010=0b10101000000 unimpl
+
 :tncaputd.n rA, rB is op2631=0b010011 & cd2125=0 & rA & rB & cd0010=0b1111000000 unimpl
+
 :tncaputd.a rA, rB is op2631=0b010011 & cd2125=0 & rA & rB & cd0010=0b1011100000 unimpl
-:fadd rD, rA, rB is op2631=0b010110 & rD & rA & rB & cd0010=0b00000000000 unimpl
-:frsub rD, rA, rB is op2631=0b010110 & rD & rA & rB & cd0010=0b00010000000 unimpl
-:fmul rD, rA, rB is op2631=0b010110 & rD & rA & rB & cd0010=0b00100000000 unimpl
-:fdiv rD, rA, rB is op2631=0b010110 & rD & rA & rB & cd0010=0b00110000000 unimpl
-:fcmp.un rD, rA, rB is op2631=0b010110 & rD & rA & rB & cd0010=0b01000000000 unimpl
-:fcmp.lt rD, rA, rB is op2631=0b010110 & rD & rA & rB & cd0010=0b01000010000 unimpl
-:fcmp.eq rD, rA, rB is op2631=0b010110 & rD & rA & rB & cd0010=0b01000100000 unimpl
-:fcmp.le rD, rA, rB is op2631=0b010110 & rD & rA & rB & cd0010=0b01000110000 unimpl
-:fcmp.gt rD, rA, rB is op2631=0b010110 & rD & rA & rB & cd0010=0b01001000000 unimpl
-:fcmp.ne rD, rA, rB is op2631=0b010110 & rD & rA & rB & cd0010=0b01001010000 unimpl
-:fcmp.ge rD, rA, rB is op2631=0b010110 & rD & rA & rB & cd0010=0b01001100000 unimpl
-:flt rD, rA is op2631=0b010110 & rD & rA & cd0015=0b0000001010000000 unimpl
-:fint rD, rA is op2631=0b010110 & rD & rA & cd0015=0b0000001100000000 unimpl
-:fsqrt rD, rA is op2631=0b010110 & rD & rA & cd0015=0b0000001110000000 unimpl
+
+:fadd rD, rA, rB is op2631=0b010110 & rD & rA & rB & cd0010=0b00000000000 {
+    rD = rB f+ rA;
+}
+
+:frsub rD, rA, rB is op2631=0b010110 & rD & rA & rB & cd0010=0b00010000000 {
+  rD = rB f- rA;
+}
+
+:fmul rD, rA, rB is op2631=0b010110 & rD & rA & rB & cd0010=0b00100000000 {
+  rD = rB f* rA;
+}
+
+:fdiv rD, rA, rB is op2631=0b010110 & rD & rA & rB & cd0010=0b00110000000 {
+  rD = rB f/ rA;
+}
+
+:fcmp.un rD, rA, rB is op2631=0b010110 & rD & rA & rB & cd0010=0b01000000000 {
+  rD = nan(rA) || nan(rB);
+}
+
+:fcmp.lt rD, rA, rB is op2631=0b010110 & rD & rA & rB & cd0010=0b01000010000{
+  rD = rB f< rA;
+}
+
+:fcmp.eq rD, rA, rB is op2631=0b010110 & rD & rA & rB & cd0010=0b01000100000 {
+  rD = rB f== rA;
+}
+
+:fcmp.le rD, rA, rB is op2631=0b010110 & rD & rA & rB & cd0010=0b01000110000 {
+  rD = rB f<= rA;
+}
+
+:fcmp.gt rD, rA, rB is op2631=0b010110 & rD & rA & rB & cd0010=0b01001000000 {
+  rD = rB f> rA;
+}
+
+:fcmp.ne rD, rA, rB is op2631=0b010110 & rD & rA & rB & cd0010=0b01001010000 {
+  rD = rB f!= rA;
+}
+
+:fcmp.ge rD, rA, rB is op2631=0b010110 & rD & rA & rB & cd0010=0b01001100000 {
+  rD = rB f>= rA;
+}
+
+:flt rD, rA is op2631=0b010110 & rD & rA & cd0015=0b0000001010000000 {
+  rD = int2float(rA);
+}
+
+:fint rD, rA is op2631=0b010110 & rD & rA & cd0015=0b0000001100000000 {
+  rD = trunc(rA);
+}
+
+:fsqrt rD, rA is op2631=0b010110 & rD & rA & cd0015=0b0000001110000000 {
+  rD = sqrt(rA);
+}
+
 :muli rD, rA, imm is op2631=0b011000 & rD & rA & imm {
 	rD = rA * imm;
 }
+
 :bsrli rD, rA, imms is op2631=0b011001 & rD & rA & bs1115=0b00000 & bs0510=0b000000 & imms {
 	rD = 0 & (rA >> imms);
 }
+
 :bsrai rD, rA, imms is op2631=0b011001 & rD & rA & bs1115=0b00000 & bs0510=0b010000 & imms {
 	rD = rA s>> imms;
 }
+
 :bslli rD, rA, imms is op2631=0b011001 & rD & rA & bs1115=0b00000 & bs0510=0b100000 & imms {
 	rD = (rA << imms) & 0;
 }
-:bsefi rD, rA, immw, imms is op2631=0b011001 & rD & rA & bs1115=0b01000 & immw & cd0505=0 & imms unimpl
+
+:bsefi rD, rA, immw, imms is op2631=0b011001 & rD & rA & bs1115=0b01000 & immw & cd0505=0 & imms {
+
+}
+
 :bsifi rD, rA, immw, imms is op2631=0b011001 & rD & rA & bs1115=0b10000 & immw & cd0505=0 & imms unimpl
+
 :tneaget.t rD, fsl is op2631=0b011011 & rD & cd1620=0 & cd0415=0b000100000000 & fsl unimpl
+
 :tneaget.n rD, fsl is op2631=0b011011 & rD & cd1620=0 & cd0415=0b010000000000 & fsl unimpl
+
 :tneaget.e rD, fsl is op2631=0b011011 & rD & cd1620=0 & cd0415=0b000001000000 & fsl unimpl
+
 :tneaget.a rD, fsl is op2631=0b011011 & rD & cd1620=0 & cd0415=0b000010000000 & fsl unimpl
+
 :tnecaget.t rD, fsl is op2631=0b011011 & rD & cd1620=0 & cd0415=0b001100000000 & fsl unimpl
+
 :tnecaget.n rD, fsl is op2631=0b011011 & rD & cd1620=0 & cd0415=0b011000000000 & fsl unimpl
+
 :tnecaget.e rD, fsl is op2631=0b011011 & rD & cd1620=0 & cd0415=0b001001000000 & fsl unimpl
+
 :tnecaget.a rD, fsl is op2631=0b011011 & rD & cd1620=0 & cd0415=0b001010000000 & fsl unimpl
+
 :naput.n rA, fsl is op2631=0b011011 & cd2125=0 & rA & cd0415=0b110000000000 & fsl unimpl
+
 :naput.a rA, fsl is op2631=0b011011 & cd2125=0 & rA & cd0415=0b100010000000 & fsl unimpl
+
 :tnaput.n rA, fsl is op2631=0b011011 & cd2125=0 & rA & cd0415=0b110100000000 & fsl unimpl
+
 :tnaput.a rA, fsl is op2631=0b011011 & cd2125=0 & rA & cd0415=0b100110000000 & fsl unimpl
+
 :ncaput.n rA, fsl is op2631=0b011011 & cd2125=0 & rA & cd0415=0b111000000000 & fsl unimpl
+
 :ncaput.a rA, fsl is op2631=0b011011 & cd2125=0 & rA & cd0415=0b101000000000 & fsl unimpl
+
 :tncaput.n rA, fsl is op2631=0b011011 & cd2125=0 & rA & cd0415=0b111100000000 & fsl unimpl
+
 :tncaput.a rA, fsl is op2631=0b011011 & cd2125=0 & rA & cd0415=0b101110000000 & fsl unimpl
+
 :or rD, rA, rB is op2631=0b100000 & rD & rA & rB & cd0010=0b00000000000 {
 	rD = rA | rB;
 }
+
 :pcmpbf rD, rA, rB is op2631=0b100000 & rD & rA & rB & cd0010=0b10000000000 unimpl
+
 :and rD, rA, rB is op2631=0b100001 & rD & rA & rB & cd0010=0b00000000000 {
 	rD = rA & rB;
 }
+
 :xor rD, rA, rB is op2631=0b100010 & rD & rA & rB & cd0010=0b00000000000 {
 	rD = rA ^ rB;
 }
+
 :pcmpeq rD, rA, rB is op2631=0b100010 & rD & rA & rB & cd0010=0b10000000000 unimpl
+
 :andn rD, rA, rB is op2631=0b100011 & rD & rA & rB & cd0010=0b00000000000 {
 	rD = rA & ~rB;
 }
@@ -307,7 +425,7 @@ attach variables [ rD rA rB ] [ r0 r1 r2 r3 r4 r5 r6 r7	r8 r9 r10 r11 r12 r13 r1
 }
 :rtid rA, imm is op2631=0b101101 & cd2125=0b10001 & rA & imm {
 	delayslot(1);
-	
+
 	return [imm];
 }
 :rtbd rA, imm is op2631=0b101101 & cd2125=0b10010 & rA & imm unimpl
