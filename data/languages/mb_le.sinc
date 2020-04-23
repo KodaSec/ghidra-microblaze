@@ -1,3 +1,7 @@
+###
+
+#sext() instructions removed, will address at later time
+
 define endian     = $(ENDIAN);
 define alignment  = 4;
 
@@ -41,11 +45,6 @@ define register offset=0xBC size=4
 
 define token instr(32)
       op2631 = (26,31)
-      op2931 = (29,31)
-      op0026 = (26,26)
-      op_k = (28,28)
-      op_c = (27,27)
-      op_rsub = (26,26)
       rD = (21,25)
       rA = (16,20)
       rB = (11,15)
@@ -79,11 +78,13 @@ attach variables [ rD rA rB ] [ r0 r1 r2 r3 r4 r5 r6 r7	r8 r9 r10 r11 r12 r13 r1
     $(MSR_C) = sborrow(rB, rA);
 }
 :addc rD, rA, rB is op2631=0b000010 & rD & rA & rB & cd0010=0b00000000000 {
-    rD = rB + rA + $(MSR_C);
+    local tmp:4 = zext($(MSR_C));
+    rD = rB + rA + tmp;
     $(MSR_C) = scarry(rB, rA);
 }
 :rsubc rD, rA, rB is op2631=0b000011 & rD & rA & rB & cd0010=0b00000000000 {
-    rD = rB + ~rA + $(MSR_C);
+    local tmp:4 = zext($(MSR_C));
+    rD = rB + ~rA + tmp;
     $(MSR_C) = sborrow(rB, rA);
 }
 :addk rD, rA, rB is op2631=0b000100 & rD & rA & rB & cd0010=0b00000000000 {
@@ -101,50 +102,56 @@ attach variables [ rD rA rB ] [ r0 r1 r2 r3 r4 r5 r6 r7	r8 r9 r10 r11 r12 r13 r1
 	rD[31,1] = (rA > rB);
 }
 :addkc rD, rA, rB is op2631=0b000110 & rD & rA & rB & cd0010=0b00000000000 {
-    rD = rB + rA + $(MSR_C);
+    local tmp:4 = zext($(MSR_C));
+    rD = rB + rA + tmp;
 }
 :rsubkc rD, rA, rB is op2631=0b000111 & rD & rA & rB & cd0010=0b00000000000 {
-    rD = rB + ~rA + $(MSR_C);
+  local tmp:4 = zext($(MSR_C));
+  rD = rB + ~rA + tmp;
 }
 :addi rD, rA, imm  is op2631=0b001000 & rD & rA & imm {
-	rD = sext(imm) + rA;
-	$(MSR_C) = scarry(sext(imm), rA);
+  rD = imm + rA;
+	$(MSR_C) = scarry(imm, rA);
 }
 :rsubi rD, rA, imm is op2631=0b001001 & rD & rA & imm {
-	rD = sext(imm) + ~rA + 1;
-	$(MSR_C) = sborrow(sext(imm), rA);
+	rD = imm + ~rA + 1;
+	$(MSR_C) = sborrow(imm, rA);
 }
 :addic rD, rA, imm is op2631=0b001010 & rD & rA & imm {
-    rD = sext(imm) + rA + $(MSR_C);
-    $(MSR_C) = sborrow(sext(imm), rA);
+    local tmp:4 = zext($(MSR_C));
+    rD = imm + rA + tmp;
+    $(MSR_C) = scarry(imm, rA);
 }
 :rsubic rD, rA, imm is op2631=0b001011 & rD & rA & imm {
-    rD = sext(imm) + ~rA + $(MSR_C);
-	$(MSR_C) = sborrow(sext(imm), rA);
+    local tmp:4 = zext($(MSR_C));
+    rD = imm + ~rA + tmp;
+	  $(MSR_C) = sborrow(imm, rA);
 }
 :addik rD, rA, imm is op2631=0b001100 & rD & rA & imm {
-    rD = sext(imm) + rA;
+    rD = imm + rA;
 }
 :rsubik rD, rA, imm is op2631=0b001101 & rD & rA & imm {
-    rD = sext(imm) + ~rA + 1;
+    rD = imm + ~rA + 1;
 }
 :addikc rD, rA, imm is op2631=0b001110 & rD & rA & imm {
-    rD = sext(imm) + rA + $(MSR_C);
+    local tmp:4 = zext($(MSR_C));
+    rD = imm + rA + tmp;
 }
 :rsubikc rD, rA, imm is op2631=0b001111 & rD & rA & imm {
-    rD = sext(imm) + ~rA + $(MSR_C);
+    local tmp:4 = zext($(MSR_C));
+    rD = imm + ~rA + tmp;
 }
 :mul rD, rA, rB is op2631=0b010000 & rD & rA & rB & cd0010=0b00000000000 {
 	rD = rA * rB;
 }
 :mulh rD, rA, rB is op2631=0b010000 & rD & rA & rB & cd0010=0b00000000001 {
-	rD = (sext(rA) * sext(rB)) s>> 32; 
+	rD = (rA * rB) s>> 32;
 }
 :mulhu rD, rA, rB is op2631=0b010000 & rD & rA & rB & cd0010=0b00000000011 {
-	rD = (zext(rA) * zext(rB)) >> 32;
+	rD = (rA * rB) >> 32;
 }
 :mulhsu rD, rA, rB is op2631=0b010000 & rD & rA & rB & cd0010=0b00000000010 {
-	rD = (sext(rA) * zext(rB)) s>> 32;
+	rD = (rA * rB) s>> 32;
 }
 :bsrl rD, rA, rB is op2631=0b010001 & rD & rA & rB & cd0010=0b00000000000 {
 	rD = 0 & (rA >> rB);
@@ -194,31 +201,38 @@ attach variables [ rD rA rB ] [ r0 r1 r2 r3 r4 r5 r6 r7	r8 r9 r10 r11 r12 r13 r1
 }
 
 :fcmp.un rD, rA, rB is op2631=0b010110 & rD & rA & rB & cd0010=0b01000000000 {
-  rD = nan(rA) || nan(rB);
+  local tmp:1 = nan(rA) || nan(rB);
+  rD = zext(tmp);
 }
 
 :fcmp.lt rD, rA, rB is op2631=0b010110 & rD & rA & rB & cd0010=0b01000010000{
-  rD = rB f< rA;
+  local tmp:1 = rB f< rA;
+  rD = zext(tmp);
 }
 
 :fcmp.eq rD, rA, rB is op2631=0b010110 & rD & rA & rB & cd0010=0b01000100000 {
-  rD = rB f== rA;
+  local tmp:1 = rB f== rA;
+  rD = zext(tmp);
 }
 
 :fcmp.le rD, rA, rB is op2631=0b010110 & rD & rA & rB & cd0010=0b01000110000 {
-  rD = rB f<= rA;
+  local tmp:1 = rB f<= rA;
+  rD = zext(tmp);
 }
 
 :fcmp.gt rD, rA, rB is op2631=0b010110 & rD & rA & rB & cd0010=0b01001000000 {
-  rD = rB f> rA;
+  local tmp:1 = rB f> rA;
+  rD = zext(tmp);
 }
 
 :fcmp.ne rD, rA, rB is op2631=0b010110 & rD & rA & rB & cd0010=0b01001010000 {
-  rD = rB f!= rA;
+  local tmp:1 = rB f!= rA;
+  rD = zext(tmp);
 }
 
 :fcmp.ge rD, rA, rB is op2631=0b010110 & rD & rA & rB & cd0010=0b01001100000 {
-  rD = rB f>= rA;
+  local tmp:1 = rB f>= rA;
+  rD = zext(tmp);
 }
 
 :flt rD, rA is op2631=0b010110 & rD & rA & cd0015=0b0000001010000000 {
@@ -298,12 +312,12 @@ attach variables [ rD rA rB ] [ r0 r1 r2 r3 r4 r5 r6 r7	r8 r9 r10 r11 r12 r13 r1
 :wdc.flush rA, rB is op2631=0b100100 & cd2125=0b00000 & rA & rB & cd0010=0b00001110100 unimpl
 :wdc.clear rA, rB is op2631=0b100100 & cd2125=0b00000 & rA & rB & cd0010=0b00001100110 unimpl
 :wdc.clear.ea rA, rB is op2631=0b100100 & cd2125=0b00000 & rA & rB & cd0010=0b00011100110 unimpl
-:mts rS, rA is op2631=0b100101 & cd2125=0 & rA & cd1415=0b11 & rS unimpl
-:mtse rS, rA is op2631=0b100101 & cd2125=0b01000 & rA & cd1415=0b11 & rS unimpl
-:mfs rD, rS is op2631=0b100101 & rD & cd1620=0 & cd1415=0b11 & rS unimpl
-:mfse rD, rS is op2631=0b100101 & rD & cd1620=0b01000 & cd1415=0b10 & rS unimpl
+:mts rS, rA is op2631=0b100101 & cd2125=0 & rA & zr1415=0b11 & rS unimpl
+:mtse rS, rA is op2631=0b100101 & cd2125=0b01000 & rA & zr1415=0b11 & rS unimpl
+:mfs rD, rS is op2631=0b100101 & rD & cd1620=0 & zr1415=0b10 & rS unimpl
+:mfse rD, rS is op2631=0b100101 & rD & cd1620=0b01000 & cd1415=0b10 & zr1415=0b10 & rS unimpl
 :msrclr rD, imm14 is op2631=0b100101 & rD & cd1620=0b00001 & zr1415=0 & imm14 unimpl
-:msrset rD, imm14 is op2631=0b100101 & rD & cd1620=0b00000 & zr1415=0 & imm14 unimpl
+:msrset rD, imm14 is op2631=0b100101 & rD & cd1620=0 & zr1415=0 & imm14 unimpl
 :br rB is op2631=0b100110 & cd2125=0 & cd1620=0 & rB & cd0010=0b00000000000 unimpl
 :brd rB is op2631=0b100110 & cd2125=0 & cd1620=0b10000 & rB & cd0010=0b00000000000 unimpl
 :brld rD, rB is op2631=0b100110 & rD & cd1620=0b10100 & rB & cd0010=0b00000000000 unimpl
@@ -324,16 +338,16 @@ attach variables [ rD rA rB ] [ r0 r1 r2 r3 r4 r5 r6 r7	r8 r9 r10 r11 r12 r13 r1
 :bgtd rA, rB is op2631=0b100111 & cd2125=0b10100 & rA & rB & cd0010=0b00000000000 unimpl
 :bged rA, rB is op2631=0b100111 & cd2125=0b10101 & rA & rB & cd0010=0b00000000000 unimpl
 :ori rD, rA, imm is op2631=0b101000 & rD & rA & imm {
-	rD = rA | sext(imm);
+	rD = rA | imm;
 }
 :andi rD, rA, imm is op2631=0b101001 & rD & rA & imm {
-	rD = rA & sext(imm);
+	rD = rA & imm;
 }
 :xori rD, rA, imm is op2631=0b101010 & rD & rA & imm {
-	rD = rA ^ sext(imm);
+	rD = rA ^ imm;
 }
 :andni rD, rA, imm is op2631=0b101011 & rD & rA & imm {
-	rD = rA & ~sext(imm);
+	rD = rA & ~imm;
 }
 :imm imm is op2631=0b101100 & cd2125=0b00000 & cd1620=0b00000 & imm unimpl
 :rtsd rA, imm is op2631=0b101101 & cd2125=0b10000 & rA & imm unimpl
@@ -408,8 +422,4 @@ attach variables [ rD rA rB ] [ r0 r1 r2 r3 r4 r5 r6 r7	r8 r9 r10 r11 r12 r13 r1
 :swi rD, rA, imm is op2631=0b111110 & rD & rA & imm {
 	local tmp:4 = rA + imm;
     *[ram]:4 tmp = *[ram]:4 rD;
-}
-:nop is op2631=0b100000 & rD=0 & rA=0 & rB=0 {
-	local NOP:1 = 0;
-	NOP = NOP;
 }
