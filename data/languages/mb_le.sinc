@@ -106,7 +106,7 @@ OpKeep:  "k" is opc_k=0 { export 0:1; }
     ImmH = imm16u; 
     globalset(inst_next, ImmMode); 
     globalset(inst_next, ImmH); 
-  ]{ nop(); }
+  ]{}
 
 :add^OpKeep^OpWithC rD, rA, rB is opc1=0b000 & OpWithC & OpKeep & opc2=0 & rD & rA & rB & cd0010=0b00000000000 {
   local tmpcf:1 = scarry(rB, rA);
@@ -370,9 +370,22 @@ TBImm: IMM is imm16u & ImmMode=1 & ImmH [ IMM = ((ImmH $and 0x0000FFFF)<<16) $or
 :br rB is op2631=0b100110 & cd2125=0 & cd1620=0 & rB & cd0010=0b00000000000 unimpl
 :brd rB is op2631=0b100110 & cd2125=0 & cd1620=0b10000 & rB & cd0010=0b00000000000 unimpl
 :brld rD, rB is op2631=0b100110 & rD & cd1620=0b10100 & rB & cd0010=0b00000000000 unimpl
-:bra rB is op2631=0b100110 & cd2125=0 & cd1620=0b01000 & rB & cd0010=0b00000000000 unimpl
-:brad rB is op2631=0b100110 & cd2125=0 & cd1620=0b11000 & rB & cd0010=0b00000000000 unimpl
-:brald rD, rB is op2631=0b100110 & rD & cd1620=0b11100 & rB & cd0010=0b00000000000 unimpl
+
+:bra rB is op2631=0b100110 & cd2125=0 & cd1620=0b01000 & rB & cd0010=0b00000000000 {
+  goto [rB];
+}
+
+:brad rB is op2631=0b100110 & cd2125=0 & cd1620=0b11000 & rB & cd0010=0b00000000000 {
+  delayslot(1);
+  goto [rB];
+}
+
+:brald rD, rB is op2631=0b100110 & rD & cd1620=0b11100 & rB & cd0010=0b00000000000 {
+  rD = inst_start;
+  delayslot(1);
+  goto [rB];
+}
+
 :brk rD, rB is op2631=0b100110 & rD & cd1620=0b01100 & rB & cd0010=0b00000000000 unimpl
 :beq rA, rB is op2631=0b100111 & cd2125=0b00000 & rA & rB & cd0010=0b00000000000 unimpl
 :bne rA, rB is op2631=0b100111 & cd2125=0b00001 & rA & rB & cd0010=0b00000000000 unimpl
@@ -399,30 +412,93 @@ TBImm: IMM is imm16u & ImmMode=1 & ImmH [ IMM = ((ImmH $and 0x0000FFFF)<<16) $or
 	rD = rA & ~imm;
 }
 
-:rtsd rA, imm is op2631=0b101101 & cd2125=0b10000 & rA & imm unimpl
+:rtsd rA, TBImm is op2631=0b101101 & cd2125=0b10000 & rA & TBImm {
+  delayslot(1);
+  local dest:4 = rA + TBImm;
+  return [dest];
+}
+
+TBDestImm: reloc is imm16s & ImmMode=0 
+  [ reloc = inst_start + imm16s; ] { export *:4 reloc; }
+TBDestImm: reloc is imm16u & ImmMode=1 & ImmH 
+  [ reloc = inst_start + ((ImmH $and 0x0000FFFF)<<16) $or (imm16u $and 0x0000FFFF); ] 
+  { export *:4 reloc; }
 :rtid rA, imm is op2631=0b101101 & cd2125=0b10001 & rA & imm unimpl
 :rtbd rA, imm is op2631=0b101101 & cd2125=0b10010 & rA & imm unimpl
 :rted rA, imm is op2631=0b101101 & cd2125=0b10100 & rA & imm unimpl
-:bri imm is op2631=0b101110 & cd2125=0 & cd1620=0 & imm unimpl
 :mbar imm3 is op2631=0b101110 & imm3 & cd1620=0b00010 & cd0015=0b0000000000000100 unimpl
-:brid imm is op2631=0b101110 & cd2125=0 & cd1620=0b10000 & imm unimpl
-:brlid rD, imm is op2631=0b101110 & rD & cd1620=0b10100 & imm unimpl
+
+:bri  TBDestImm is op2631=0b101110 & cd2125=0 & cd1620=0 & TBDestImm { goto TBDestImm; }
+:brid TBDestImm is op2631=0b101110 & cd2125=0 & cd1620=0b10000 & TBDestImm {
+  delayslot(1);
+  goto TBDestImm;
+}
+
+:brlid rD, TBImm is op2631=0b101110 & rD & cd1620=0b10100 & TBImm {
+  rD = inst_start;
+  local dest:4 = inst_start + TBImm;
+  delayslot(1);
+  call [dest];
+}
+
 :brai imm is op2631=0b101110 & cd2125=0 & cd1620=0b01000 & imm unimpl
 :braid imm is op2631=0b101110 & cd2125=0 & cd1620=0b11000 & imm unimpl
 :bralid rD is op2631=0b101110 & rD & cd1620=0b11100 & imm unimpl
-:brki rD, imm is op2631=0b101110 & rD & cd1620=0b01100 & imm unimpl
-:beqi rA, imm is op2631=0b101111 & cd2125=0b00000 & rA & imm unimpl
-:bnei rA, imm is op2631=0b101111 & cd2125=0b00001 & rA & imm unimpl
-:blti rA, imm is op2631=0b101111 & cd2125=0b00010 & rA & imm unimpl
-:blei rA, imm is op2631=0b101111 & cd2125=0b00011 & rA & imm unimpl
-:bgti rA, imm is op2631=0b101111 & cd2125=0b00100 & rA & imm unimpl
-:bgei rA, imm is op2631=0b101111 & cd2125=0b00101 & rA & imm unimpl
-:beqid rA, imm is op2631=0b101111 & cd2125=0b10000 & rA & imm unimpl
-:bneid rA, imm is op2631=0b101111 & cd2125=0b10001 & rA & imm unimpl
-:bltid rA, imm is op2631=0b101111 & cd2125=0b10010 & rA & imm unimpl
-:bleid rA, imm is op2631=0b101111 & cd2125=0b10011 & rA & imm unimpl
-:bgtid rA, imm is op2631=0b101111 & cd2125=0b10100 & rA & imm unimpl
-:bgeid rA, imm is op2631=0b101111 & cd2125=0b10101 & rA & imm unimpl
+:brki rD, TBImm is op2631=0b101110 & rD & cd1620=0b01100 & TBImm unimpl
+
+:beqi rA, TBDestImm is op2631=0b101111 & cd2125=0b00000 & rA & TBDestImm {
+  if (rA == 0) goto TBDestImm;
+}
+:bnei rA, TBDestImm is op2631=0b101111 & cd2125=0b00001 & rA & TBDestImm {
+  if (rA != 0) goto TBDestImm;
+}
+
+:blti rA, TBDestImm is op2631=0b101111 & cd2125=0b00010 & rA & TBDestImm {
+  if (rA s< 0) goto TBDestImm;
+}
+
+:blei rA, TBDestImm is op2631=0b101111 & cd2125=0b00011 & rA & TBDestImm {
+  if (rA s<= 0) goto TBDestImm;
+}
+
+:bgti rA, TBDestImm is op2631=0b101111 & cd2125=0b00100 & rA & TBDestImm {
+  if (rA s> 0) goto TBDestImm;
+}
+
+:bgei rA, TBDestImm is op2631=0b101111 & cd2125=0b00101 & rA & TBDestImm {
+  if (rA s>= 0) goto TBDestImm;
+}
+
+:beqid rA, TBDestImm is op2631=0b101111 & cd2125=0b10000 & rA & TBDestImm {
+  delayslot(1);
+  if (rA == 0) goto TBDestImm;
+}
+
+:bneid rA, TBDestImm is op2631=0b101111 & cd2125=0b10001 & rA & TBDestImm {
+  delayslot(1);
+  if (rA != 0) goto TBDestImm;
+}
+
+:bltid rA, TBDestImm is op2631=0b101111 & cd2125=0b10010 & rA & TBDestImm {
+  delayslot(1);
+  if (rA s< 0) goto TBDestImm;
+}
+
+:bleid rA, TBDestImm is op2631=0b101111 & cd2125=0b10011 & rA & TBDestImm {
+  delayslot(1);
+  if (rA s<= 0) goto TBDestImm;
+}
+
+:bgtid rA, TBDestImm is op2631=0b101111 & cd2125=0b10100 & rA & TBDestImm {
+  delayslot(1);
+  if (rA s> 0) goto TBDestImm;
+}
+
+:bgeid rA, TBDestImm is op2631=0b101111 & cd2125=0b10101 & rA & TBDestImm {
+  delayslot(1);
+  if (rA s>= 0) goto TBDestImm;
+}
+
 :lbu rD, rA, rB is op2631=0b110000 & rD & rA & rB & cd0010=0b00000000000 unimpl
 :lbur rD, rA, rB is op2631=0b110000 & rD & rA & rB & cd0010=0b01000000000 unimpl
 :lbuea rD, rA, rB is op2631=0b110000 & rD & rA & rB & cd0010=0b00010000000 unimpl
