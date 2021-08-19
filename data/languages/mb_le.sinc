@@ -1,5 +1,3 @@
-###
-
 #sext() instructions removed, will address at later time
 
 define endian     = $(ENDIAN);
@@ -9,7 +7,8 @@ define space ram      type=ram_space        size=4 default;
 define space register type=register_space   size=4;
 
 define register offset=0 size=4
-  [ r0 r1 r2 r3 r4 r5 r6 r7	r8 r9 r10 r11 r12 r13 r14 r15 r16 r17 r18 r19 r20 r21 r22 r23 r24 r25 r26 r27 r28 r29 r30 r31 ];
+  [ r0 r1 r2 r3 r4 r5 r6 r7	r8 r9 r10 r11 r12 r13 r14 r15 r16 
+  r17 r18 r19 r20 r21 r22 r23 r24 r25 r26 r27 r28 r29 r30 r31 ];
 
 define register offset=0x80 size=4
   [ pc msr ear esr fsr btr edr slr shr pid zpr tlblo tlbhi tlbx tlbsx ] ;
@@ -17,13 +16,21 @@ define register offset=0x80 size=4
 define register offset=0xBC size=4
   [ pvr0 pvr1 pvr2 pvr3 pvr4 pvr5 pvr6 pvr7 pvr8 pvr9 pvr10 pvr11 pvr12 ] ;
 
+# Context for 32bit immediate construction
+define register offset=0x200 size=4 immstatus;
+define context immstatus
+  ImmMode = (0,  0)  noflow     # 1 if ImmH is enabled
+  ImmH    = (16, 31) noflow
+;
+define pcodeop nop;
+
 @define FSR_IO    "fsr[27,1]"
 @define FSR_DZ    "fsr[28,1]"
 @define FSR_OF    "fsr[29,1]"
 @define FSR_UF    "fsr[30,1]"
 @define FSR_DO    "fsr[31,1]"
 
-@define MSR_CC    "msr[0,32]"
+@define MSR_CC    "msr[0, 1]"
 @define MSR_VMS   "msr[17,1]"
 @define MSR_VM    "msr[18,1]"
 @define MSR_UMS   "msr[19,1]"
@@ -43,8 +50,17 @@ define register offset=0xBC size=4
 @define ESR_ESS   "esr[20,5]"
 @define ESR_EC    "esr[27,5]"
 
+macro setCF(val) {
+  $(MSR_C) = val;
+  $(MSR_CC) = val;
+}
+
 define token instr(32)
-      op2631 = (26,31)
+      op2631 = (26, 31)
+      opc1   = (29, 31)
+      opc_k  = (28, 28)
+      opc_c  = (27, 27)
+      opc2   = (26, 26)
       rD = (21,25)
       rA = (16,20)
       rB = (11,15)
@@ -56,23 +72,56 @@ define token instr(32)
       cd1415 = (14,15)
       cd1620 = (16,20)
       cd2125 = (21,25)
-      imm = (0,15)
-      immw = (6,10)
-      imms = (0,4)
+      imm5 = (27,31)
       imm3 = (21,25)
-      imm14= (0,13)
+      immw = (6,10)
+      imm = (0,15)
+      imm16u = (0, 15)
+      imm16s = (0, 15) signed
+      imm14  = (0,13)
       bs1115 = (11,15)
       bs0510 = (5,10)
       zr1415 = (14,15)
       fsl = (0,3)
 ;
 
-attach variables [ rD rA rB ] [ r0 r1 r2 r3 r4 r5 r6 r7	r8 r9 r10 r11 r12 r13 r14 r15 r16 r17 r18 r19 r20 r21 r22 r23 r24 r25 r26 r27 r28 r29 r30 r31 ];
+attach variables [ rD rA rB ]
+  [
+    r0  r1  r2  r3  r4  r5  r6  r7
+  	r8  r9  r10 r11 r12 r13 r14 r15
+    r16 r17 r18 r19 r20 r21 r22 r23 
+    r24 r25 r26 r27 r28 r29 r30 r31 
+  ];
 
-:add rD, rA, rB is op2631=0b000000 & rD & rA & rB & cd0010=0b00000000000 {
-	rD = rB + rA;
-	$(MSR_C) = scarry(rB, rA);
+
+OpWithC: "c" is opc_c=1 { export 1:1; }
+OpWithC:     is opc_c=0 { export 0:1; }
+
+OpKeep:  "k" is opc_k=1 { export 1:1; }
+OpKeep:  "k" is opc_k=0 { export 0:1; }
+
+:imm imm16u is op2631=0b101100 & rD=0 & rA=0 & imm16u 
+  [ 
+    ImmMode = 1; 
+    ImmH = imm16u; 
+    globalset(inst_next, ImmMode); 
+    globalset(inst_next, ImmH); 
+  ]{ nop(); }
+
+:add^OpKeep^OpWithC rD, rA, rB is opc1=0b000 & OpWithC & OpKeep & opc2=0 & rD & rA & rB & cd0010=0b00000000000 {
+  local tmpcf:1 = scarry(rB, rA);
+  rD = rB + rA;
+
+  if (OpWithC == 0) goto <skip_add_carry>;
+  # <add_carry>
+    tmpcf = tmpcf | scarry(rD, zext($(MSR_C)));
+    rD = rD + zext($(MSR_C));
+
+  <skip_add_carry>
+    if (OpKeep == 1) goto inst_next;
+	  setCF(tmpcf);
 }
+
 :rsub rD, rA, rB is op2631=0b000001 & rD & rA & rB & cd0010=0b00000000000 {
     rD = rB + ~rA + 1;
     $(MSR_C) = sborrow(rB, rA);
@@ -87,9 +136,6 @@ attach variables [ rD rA rB ] [ r0 r1 r2 r3 r4 r5 r6 r7	r8 r9 r10 r11 r12 r13 r1
     rD = rB + ~rA + tmp;
     $(MSR_C) = sborrow(rB, rA);
 }
-:addk rD, rA, rB is op2631=0b000100 & rD & rA & rB & cd0010=0b00000000000 {
-    rD = rB + rA;
-}
 :rsubk rD, rA, rB is op2631=0b000101 & rD & rA & rB & cd0010=0b00000000000 {
     rD = rB + ~rA + 1;
 }
@@ -101,49 +147,52 @@ attach variables [ rD rA rB ] [ r0 r1 r2 r3 r4 r5 r6 r7	r8 r9 r10 r11 r12 r13 r1
 	rD = rB + ~rA + 1;
 	rD[31,1] = (rA > rB);
 }
-:addkc rD, rA, rB is op2631=0b000110 & rD & rA & rB & cd0010=0b00000000000 {
-    local tmp:4 = zext($(MSR_C));
-    rD = rB + rA + tmp;
-}
 :rsubkc rD, rA, rB is op2631=0b000111 & rD & rA & rB & cd0010=0b00000000000 {
   local tmp:4 = zext($(MSR_C));
   rD = rB + ~rA + tmp;
 }
-:addi rD, rA, imm  is op2631=0b001000 & rD & rA & imm {
-  rD = imm + rA;
-	$(MSR_C) = scarry(imm, rA);
+
+TBImm: imm16s is imm16s & ImmMode=0 { local timm:4 = sext(imm16s:2); export *[const]:4 timm; }
+TBImm: IMM is imm16u & ImmMode=1 & ImmH [ IMM = ((ImmH $and 0x0000FFFF)<<16) $or (imm16u $and 0x0000FFFF); ] { export *[const]:4 IMM; }
+
+:addi^OpKeep^OpWithC rD,rA,TBImm is opc1=001 & OpKeep & OpWithC & opc2=0 & rD & rA & TBImm {
+  local tmpcf:1 = scarry(rA, TBImm);
+  rD = rA + TBImm;
+
+  if (OpWithC == 0) goto <skip_add_carry>;
+  # <add_carry>
+    tmpcf = tmpcf | scarry(rD, zext($(MSR_C)));
+    rD = rD + zext($(MSR_C));
+
+  <skip_add_carry>
+    if (OpKeep == 1) goto inst_next;
+	  setCF(tmpcf);
 }
+
 :rsubi rD, rA, imm is op2631=0b001001 & rD & rA & imm {
 	rD = imm + ~rA + 1;
 	$(MSR_C) = sborrow(imm, rA);
 }
-:addic rD, rA, imm is op2631=0b001010 & rD & rA & imm {
-    local tmp:4 = zext($(MSR_C));
-    rD = imm + rA + tmp;
-    $(MSR_C) = scarry(imm, rA);
-}
+
 :rsubic rD, rA, imm is op2631=0b001011 & rD & rA & imm {
     local tmp:4 = zext($(MSR_C));
     rD = imm + ~rA + tmp;
 	  $(MSR_C) = sborrow(imm, rA);
 }
-:addik rD, rA, imm is op2631=0b001100 & rD & rA & imm {
-    rD = imm + rA;
-}
+
 :rsubik rD, rA, imm is op2631=0b001101 & rD & rA & imm {
     rD = imm + ~rA + 1;
 }
-:addikc rD, rA, imm is op2631=0b001110 & rD & rA & imm {
-    local tmp:4 = zext($(MSR_C));
-    rD = imm + rA + tmp;
-}
+
 :rsubikc rD, rA, imm is op2631=0b001111 & rD & rA & imm {
     local tmp:4 = zext($(MSR_C));
     rD = imm + ~rA + tmp;
 }
+
 :mul rD, rA, rB is op2631=0b010000 & rD & rA & rB & cd0010=0b00000000000 {
 	rD = rA * rB;
 }
+
 :mulh rD, rA, rB is op2631=0b010000 & rD & rA & rB & cd0010=0b00000000001 {
 	rD = (rA * rB) s>> 32;
 }
@@ -249,17 +298,17 @@ attach variables [ rD rA rB ] [ r0 r1 r2 r3 r4 r5 r6 r7	r8 r9 r10 r11 r12 r13 r1
 :muli rD, rA, imm is op2631=0b011000 & rD & rA & imm {
 	rD = rA * imm;
 }
-:bsrli rD, rA, imms is op2631=0b011001 & rD & rA & bs1115=0b00000 & bs0510=0b000000 & imms {
-	rD = 0 & (rA >> imms);
+:bsrli rD, rA, imm5 is op2631=0b011001 & rD & rA & bs1115=0b00000 & bs0510=0b000000 & imm5 {
+	rD = 0 & (rA >> imm5);
 }
-:bsrai rD, rA, imms is op2631=0b011001 & rD & rA & bs1115=0b00000 & bs0510=0b010000 & imms {
-	rD = rA s>> imms;
+:bsrai rD, rA, imm5 is op2631=0b011001 & rD & rA & bs1115=0b00000 & bs0510=0b010000 & imm5 {
+	rD = rA s>> imm5;
 }
-:bslli rD, rA, imms is op2631=0b011001 & rD & rA & bs1115=0b00000 & bs0510=0b100000 & imms {
-	rD = (rA << imms) & 0;
+:bslli rD, rA, imm5 is op2631=0b011001 & rD & rA & bs1115=0b00000 & bs0510=0b100000 & imm5 {
+	rD = (rA << imm5) & 0;
 }
-:bsefi rD, rA, immw, imms is op2631=0b011001 & rD & rA & bs1115=0b01000 & immw & cd0505=0 & imms unimpl
-:bsifi rD, rA, immw, imms is op2631=0b011001 & rD & rA & bs1115=0b10000 & immw & cd0505=0 & imms unimpl
+:bsefi rD, rA, immw, imm5 is op2631=0b011001 & rD & rA & bs1115=0b01000 & immw & cd0505=0 & imm5 unimpl
+:bsifi rD, rA, immw, imm5 is op2631=0b011001 & rD & rA & bs1115=0b10000 & immw & cd0505=0 & imm5 unimpl
 :tneaget.t rD, fsl is op2631=0b011011 & rD & cd1620=0 & cd0415=0b000100000000 & fsl unimpl
 :tneaget.n rD, fsl is op2631=0b011011 & rD & cd1620=0 & cd0415=0b010000000000 & fsl unimpl
 :tneaget.e rD, fsl is op2631=0b011011 & rD & cd1620=0 & cd0415=0b000001000000 & fsl unimpl
@@ -349,7 +398,7 @@ attach variables [ rD rA rB ] [ r0 r1 r2 r3 r4 r5 r6 r7	r8 r9 r10 r11 r12 r13 r1
 :andni rD, rA, imm is op2631=0b101011 & rD & rA & imm {
 	rD = rA & ~imm;
 }
-:imm imm is op2631=0b101100 & cd2125=0b00000 & cd1620=0b00000 & imm unimpl
+
 :rtsd rA, imm is op2631=0b101101 & cd2125=0b10000 & rA & imm unimpl
 :rtid rA, imm is op2631=0b101101 & cd2125=0b10001 & rA & imm unimpl
 :rtbd rA, imm is op2631=0b101101 & cd2125=0b10010 & rA & imm unimpl
