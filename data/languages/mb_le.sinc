@@ -165,8 +165,9 @@ TBImm: IMM is imm16u & ImmMode=1 & ImmH [ IMM = ((ImmH $and 0x0000FFFF)<<16) $or
     rD = rD + zext($(MSR_C));
 
   <skip_add_carry>
-    if (OpKeep == 1) goto inst_next;
+    if (OpKeep == 1) goto <skip_set_carry>;
 	  setCF(tmpcf);
+  <skip_set_carry>
 }
 
 :rsubi rD, rA, imm is op2631=0b001001 & rD & rA & imm {
@@ -415,13 +416,14 @@ TBImm: IMM is imm16u & ImmMode=1 & ImmH [ IMM = ((ImmH $and 0x0000FFFF)<<16) $or
 :rtsd rA, TBImm is op2631=0b101101 & cd2125=0b10000 & rA & TBImm {
   delayslot(1);
   local dest:4 = rA + TBImm;
+  dest = dest - inst_start;
   return [dest];
 }
 
 TBDestImm: reloc is imm16s & ImmMode=0 
   [ reloc = inst_start + imm16s; ] { export *:4 reloc; }
 TBDestImm: reloc is imm16u & ImmMode=1 & ImmH 
-  [ reloc = inst_start + ((ImmH $and 0x0000FFFF)<<16) $or (imm16u $and 0x0000FFFF); ] 
+  [ reloc = inst_start + (((ImmH $and 0x0000FFFF)<<16) $or (imm16u $and 0x0000FFFF)); ] 
   { export *:4 reloc; }
 :rtid rA, imm is op2631=0b101101 & cd2125=0b10001 & rA & imm unimpl
 :rtbd rA, imm is op2631=0b101101 & cd2125=0b10010 & rA & imm unimpl
@@ -434,11 +436,10 @@ TBDestImm: reloc is imm16u & ImmMode=1 & ImmH
   goto TBDestImm;
 }
 
-:brlid rD, TBImm is op2631=0b101110 & rD & cd1620=0b10100 & TBImm {
-  rD = inst_start;
-  local dest:4 = inst_start + TBImm;
+:brlid rD, TBDestImm is op2631=0b101110 & rD & cd1620=0b10100 & TBDestImm {
   delayslot(1);
-  call [dest];
+  rD = inst_start;
+  call TBDestImm;
 }
 
 :brai imm is op2631=0b101110 & cd2125=0 & cd1620=0b01000 & imm unimpl
