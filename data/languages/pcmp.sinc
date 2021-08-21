@@ -1,0 +1,11 @@
+with : cd0010=0b10000000000 {
+    :pcmpbf rD,RegA,RegB is op2631=0b100000 & rD & RegA & RegB unimpl
+    :pcmpeq rD,RegA,RegB is op2631=0b100010 & rD & RegA & RegB {
+        local tmp:1 = (RegA == RegB);
+        rD = zext(tmp);
+    }
+    :pcmpne rD,RegA,RegB is op2631=0b100011 & rD & RegA & RegB {
+        local tmp:1 = (RegA != RegB);
+        rD = zext(tmp);
+    }
+} # with cd0010=0b10000000000

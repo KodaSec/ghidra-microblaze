@@ -54,6 +54,10 @@ macro setCF(val) {
     $(MSR_CC) = val;
 }
 
+macro setPC(val) {
+  pc = val;
+}
+
 define token instr(32)
     op2631 = (26, 31)
     opc1   = (29, 31)
@@ -65,18 +69,19 @@ define token instr(32)
     rB = (11,15)
     rS = (0,13)
     cd0010 = (0,10)
-    cd0015 = (0,15)
     cd0415 = (4,15)
     cd0505 = (5,5)
     cd1415 = (14,15)
     cd1620 = (16,20)
     cd2125 = (21,25)
+    delay25 = (25,25)
+    cd2124 = (21,24)
     imm5 = (27,31)
     imm3 = (21,25)
     immw = (6,10)
     imm = (0,15)
-    imm16u = (0, 15)
-    imm16s = (0, 15) signed
+    imm16u = (0,15)
+    imm16s = (0,15) signed
     imm14  = (0,13)
     bs1115 = (11,15)
     bs0510 = (5,10)
@@ -100,6 +105,22 @@ TBImm: imm16s is imm16s & ImmMode=0 {
 TBImm: IMM is imm16u & ImmMode=1 & ImmH
     [ IMM = (((ImmH $and 0x0000FFFF)<<16) $or (imm16u $and 0x0000FFFF)); ] 
     { export *[const]:4 IMM; }
+# Addr (+Imm)
+TBRel: reloc is imm16s & ImmMode=0 
+  [ reloc = inst_start + imm16s; ] { export *:4 reloc; }
+TBRel: reloc is imm16u & ImmMode=1 & ImmH 
+  [ reloc = inst_start + (((ImmH $and 0x0000FFFF)<<16) $or (imm16u $and 0x0000FFFF)); ] 
+  { export *:4 reloc; }
+
+# Absolute Addr. (Imm)
+TBAbs: imm16s is imm16s & ImmMode=0 { 
+  local timms:2 = imm16s;
+  local tdest:4 = sext(timms);
+  export *[const]:4 tdest; 
+}
+TBAbs: reloc is imm16u & ImmMode=1 & ImmH 
+  [ reloc = (((ImmH $and 0x0000FFFF)<<16) $or (imm16u $and 0x0000FFFF)); ]
+  { export *:4 reloc; }
 
 RegA: rA is rA { export rA; }
 RegA: rA is rA & rA=0 { export 0:4; }
@@ -134,19 +155,19 @@ with : opc1=0b000 & opc2=0 & cd0010=0b00000000000 {
     }
 }
 
-:rsub rD, rA, rB is op2631=0b000001 & rD & rA & rB & cd0010=0b00000000000 {
-    rD = rB + ~rA + 1;
-    $(MSR_C) = sborrow(rB, rA);
+:rsub rD, RegA, RegB is op2631=0b000001 & rD & RegA & RegB & cd0010=0b00000000000 {
+    rD = RegB - RegA;
+    setCF(sborrow(RegB, RegA));
 }
 
 :rsubc rD, rA, rB is op2631=0b000011 & rD & rA & rB & cd0010=0b00000000000 {
     local tmp:4 = zext($(MSR_C));
     rD = rB + ~rA + tmp;
-    $(MSR_C) = sborrow(rB, rA);
+    setCF(sborrow(rB, rA));
 }
 
-:rsubk rD, rA, rB is op2631=0b000101 & rD & rA & rB & cd0010=0b00000000000 {
-    rD = rB + ~rA + 1;
+:rsubk rD, RegA, RegB is op2631=0b000101 & rD & RegA & RegB & cd0010=0b00000000000 {
+    rD = RegB - RegA;
 }
 
 :cmp rD, rA, rB is op2631=0b000101 & rD & rA & rB & cd0010=0b00000000001 {
@@ -164,13 +185,13 @@ with : opc1=0b000 & opc2=0 & cd0010=0b00000000000 {
 }
 
 with : opc1=0b001 & opc2=0 {
-    :addi rD,rA,TBImm is opc_k=0 & opc_c=0 & rD & rA & TBImm {
-        rD = rA + TBImm;
-        setCF(scarry(rA, TBImm));
+    :addi rD,RegA,TBImm is opc_k=0 & opc_c=0 & rD & RegA & TBImm {
+        rD = RegA + TBImm;
+        setCF(scarry(RegA, TBImm));
     }
-    :addic rD,rA,TBImm is opc_k=0 & opc_c=1 & rD & rA & TBImm {
-        local tmpCF:1 = scarry(rA, TBImm);
-        rD = rA + TBImm;
+    :addic rD,RegA,TBImm is opc_k=0 & opc_c=1 & rD & RegA & TBImm {
+        local tmpCF:1 = scarry(RegA, TBImm);
+        rD = RegA + TBImm;
         tmpCF = tmpCF | scarry(rD, zext($(MSR_C)));
         rD = rD + zext($(MSR_C));
         setCF(tmpCF);
@@ -178,8 +199,8 @@ with : opc1=0b001 & opc2=0 {
     :addik rD,RegA,TBImm is opc_k=1 & opc_c=0 & rD & RegA & TBImm {
         rD = RegA + TBImm;
     }
-    :addikc rD,rA,TBImm is opc_k=1 & opc_c=1 & rD & rA & TBImm {
-        rD = rA + TBImm + zext($(MSR_C));
+    :addikc rD,RegA,TBImm is opc_k=1 & opc_c=1 & rD & RegA & TBImm {
+        rD = RegA + TBImm + zext($(MSR_C));
     }
 } # opc=0b001 (addi)
 
@@ -216,38 +237,15 @@ with : opc1=0b001 & opc2=0 {
 :mulhsu rD, rA, rB is op2631=0b010000 & rD & rA & rB & cd0010=0b00000000010 {
 	rD = (rA * rB) s>> 32;
 }
-:bsrl rD, rA, rB is op2631=0b010001 & rD & rA & rB & cd0010=0b00000000000 {
-	rD = 0 & (rA >> rB);
-}
-:bsra rD, rA, rB is op2631=0b010001 & rD & rA & rB & cd0010=0b01000000000 {
-	rD = rA s>> rB;
-}
-:bsll rD, rA, rB is op2631=0b010001 & rD & rA & rB & cd0010=0b10000000000 {
-	rD = (rA << rB) & 0;
-}
+
 :idiv rD, rA, rB is op2631=0b010010 & rD & rA & rB & cd0010=0b00000000000 {
 	rD = rB s/ rA;
 }
 :idivu rD, rA, rB is op2631=0b010010 & rD & rA & rB & cd0010=0b00000000010 {
 	rD = rB / rA;
 }
-:tneagetd.t rD, rB is op2631=0b110010 & rD & rB & cd1620=0 & cd0010=0b000100000000 unimpl
-:tneagetd.n rD, rB is op2631=0b110010 & rD & rB & cd1620=0 & cd0010=0b010000000000 unimpl
-:tneagetd.e rD, rB is op2631=0b110010 & rD & rB & cd1620=0 & cd0010=0b000000100000 unimpl
-:tneagetd.a rD, rB is op2631=0b110010 & rD & rB & cd1620=0 & cd0010=0b000001000000 unimpl
-:tnecagetd.t rD, rB is op2631=0b110010 & rD & rB & cd1620=0 & cd0010=0b00110000000 unimpl
-:tnecagetd.n rD, rB is op2631=0b110010 & rD & rB & cd1620=0 & cd0010=0b01100000000 unimpl
-:tnecagetd.e rD, rB is op2631=0b110010 & rD & rB & cd1620=0 & cd0010=0b00100100000 unimpl
-:tnecagetd.a rD, rB is op2631=0b110010 & rD & rB & cd1620=0 & cd0010=0b00101000000 unimpl
-:naputd.n rA, rB is op2631=0b010011 & cd2125=0 & rA & rB & cd0010=0b11000000000 unimpl
-:naputd.a rA, rB is op2631=0b010011 & cd2125=0 & rA & rB & cd0010=0b10001000000 unimpl
-:tnaputd.n rA, rB is op2631=0b010011 & cd2125=0 & rA & rB & cd0010=0b11010000000 unimpl
-:tnaputd.a rA, rB is op2631=0b010011 & cd2125=0 & rA & rB & cd0010=0b10011000000 unimpl
-:ncaputd.n rA, rB is op2631=0b010011 & cd2125=0 & rA & rB & cd0010=0b11100000000 unimpl
-:ncaputd.a rA, rB is op2631=0b010011 & cd2125=0 & rA & rB & cd0010=0b10101000000 unimpl
-:tncaputd.n rA, rB is op2631=0b010011 & cd2125=0 & rA & rB & cd0010=0b1111000000 unimpl
-:tncaputd.a rA, rB is op2631=0b010011 & cd2125=0 & rA & rB & cd0010=0b1011100000 unimpl
-:fadd rD, rA, rB is op2631=0b010110 & rD & rA & rB & cd0010=0b00000000000 {
+
+:fadd rD, rA, rB      is op2631=0b010110 & rD & rA & rB & cd0010=0b00000000000 {
     rD = rB f+ rA;
 }
 
@@ -298,99 +296,84 @@ with : opc1=0b001 & opc2=0 {
   rD = zext(tmp);
 }
 
-:flt rD, rA is op2631=0b010110 & rD & rA & cd0015=0b0000001010000000 {
+:flt rD, rA is op2631=0b010110 & rD & rA & imm16u=0b0000001010000000 {
   rD = int2float(rA);
 }
 
-:fint rD, rA is op2631=0b010110 & rD & rA & cd0015=0b0000001100000000 {
+:fint rD, rA is op2631=0b010110 & rD & rA & imm16u=0b0000001100000000 {
   rD = trunc(rA);
 }
 
-:fsqrt rD, rA is op2631=0b010110 & rD & rA & cd0015=0b0000001110000000 {
-  rD = sqrt(rA);
+:fsqrt rD, rA is op2631=0b010110 & rD & rA & imm16u=0b0000001110000000 { rD = sqrt(rA); }
+:muli rD, rA, imm is op2631=0b011000 & rD & rA & imm { rD = rA * imm; }
+
+with : op2631=0b011001 {
+  with : bs1115=0 {
+    :bsrli rD,rA,imm5 is rD & rA & bs0510=0b000000 & imm5 { rD = rA >> imm5; }
+    :bsrai rD,rA,imm5 is rD & rA & bs0510=0b010000 & imm5 { rD = rA s>> imm5; }
+    :bslli rD,rA,imm5 is rD & rA & bs0510=0b100000 & imm5 { rD = rA << imm5; }
+  } # bs1115=0
+  :bsefi rD, rA, immw, imm5 is rD & rA & bs1115=0b01000 & immw & cd0505=0 & imm5 {
+      local mask:4 = ~(0xFFFFFFFF << immw);
+      rD = (rA >> imm5) & mask;
+  }
+  :bsifi rD, rA, immw, imm5 is rD & rA & bs1115=0b10000 & immw & cd0505=0 & imm5 {
+      local mask:4 = (0xFFFFFFFF << (immw + 1)) ^ (0xFFFFFFFF << imm5);
+      rD = ((rA << imm5) & mask)|(rD & mask);
+  }
 }
-:muli rD, rA, imm is op2631=0b011000 & rD & rA & imm {
-	rD = rA * imm;
+
+with : op2631=0b010001 {
+  :bsrl rD, rA, rB is rD & rA & rB & cd0010=0b00000000000 { rD = rA >> rB; }
+  :bsra rD, rA, rB is rD & rA & rB & cd0010=0b01000000000 { rD = rA s>> rB; }
+  :bsll rD, rA, rB is rD & rA & rB & cd0010=0b10000000000 { rD = rA << rB; }
 }
-:bsrli rD, rA, imm5 is op2631=0b011001 & rD & rA & bs1115=0b00000 & bs0510=0b000000 & imm5 {
-	rD = 0 & (rA >> imm5);
-}
-:bsrai rD, rA, imm5 is op2631=0b011001 & rD & rA & bs1115=0b00000 & bs0510=0b010000 & imm5 {
-	rD = rA s>> imm5;
-}
-:bslli rD, rA, imm5 is op2631=0b011001 & rD & rA & bs1115=0b00000 & bs0510=0b100000 & imm5 {
-	rD = (rA << imm5) & 0;
-}
-:bsefi rD, rA, immw, imm5 is op2631=0b011001 & rD & rA & bs1115=0b01000 & immw & cd0505=0 & imm5 {
-    local mask:4 = ~(0xFFFFFFFF << immw);
-    rD = (rA >> imm5) & mask;
-}
-:bsifi rD, rA, immw, imm5 is op2631=0b011001 & rD & rA & bs1115=0b10000 & immw & cd0505=0 & imm5 {
-    local mask:4 = (0xFFFFFFFF << (immw + 1)) ^ (0xFFFFFFFF << imm5);
-    rD = ((rA << imm5) & mask)|(rD & mask);
-}
-:tneaget.t rD, fsl is op2631=0b011011 & rD & cd1620=0 & cd0415=0b000100000000 & fsl unimpl
-:tneaget.n rD, fsl is op2631=0b011011 & rD & cd1620=0 & cd0415=0b010000000000 & fsl unimpl
-:tneaget.e rD, fsl is op2631=0b011011 & rD & cd1620=0 & cd0415=0b000001000000 & fsl unimpl
-:tneaget.a rD, fsl is op2631=0b011011 & rD & cd1620=0 & cd0415=0b000010000000 & fsl unimpl
-:tnecaget.t rD, fsl is op2631=0b011011 & rD & cd1620=0 & cd0415=0b001100000000 & fsl unimpl
-:tnecaget.n rD, fsl is op2631=0b011011 & rD & cd1620=0 & cd0415=0b011000000000 & fsl unimpl
-:tnecaget.e rD, fsl is op2631=0b011011 & rD & cd1620=0 & cd0415=0b001001000000 & fsl unimpl
-:tnecaget.a rD, fsl is op2631=0b011011 & rD & cd1620=0 & cd0415=0b001010000000 & fsl unimpl
-:naput.n rA, fsl is op2631=0b011011 & cd2125=0 & rA & cd0415=0b110000000000 & fsl unimpl
-:naput.a rA, fsl is op2631=0b011011 & cd2125=0 & rA & cd0415=0b100010000000 & fsl unimpl
-:tnaput.n rA, fsl is op2631=0b011011 & cd2125=0 & rA & cd0415=0b110100000000 & fsl unimpl
-:tnaput.a rA, fsl is op2631=0b011011 & cd2125=0 & rA & cd0415=0b100110000000 & fsl unimpl
-:ncaput.n rA, fsl is op2631=0b011011 & cd2125=0 & rA & cd0415=0b111000000000 & fsl unimpl
-:ncaput.a rA, fsl is op2631=0b011011 & cd2125=0 & rA & cd0415=0b101000000000 & fsl unimpl
-:tncaput.n rA, fsl is op2631=0b011011 & cd2125=0 & rA & cd0415=0b111100000000 & fsl unimpl
-:tncaput.a rA, fsl is op2631=0b011011 & cd2125=0 & rA & cd0415=0b101110000000 & fsl unimpl
-:or rD, rA, rB is op2631=0b100000 & rD & rA & rB & cd0010=0b00000000000 {
-	rD = rA | rB;
-}
-:pcmpbf rD, rA, rB is op2631=0b100000 & rD & rA & rB & cd0010=0b10000000000 unimpl
-:and rD, rA, rB is op2631=0b100001 & rD & rA & rB & cd0010=0b00000000000 {
-	rD = rA & rB;
-}
-:xor rD, rA, rB is op2631=0b100010 & rD & rA & rB & cd0010=0b00000000000 {
-	rD = rA ^ rB;
-}
-:pcmpeq rD, rA, rB is op2631=0b100010 & rD & rA & rB & cd0010=0b10000000000 unimpl
-:andn rD, rA, rB is op2631=0b100011 & rD & rA & rB & cd0010=0b00000000000 {
-	rD = rA & ~rB;
-}
-:pcmpne rD, rA, rB is op2631=0b100011 & rD & rA & rB & cd0010=0b10000000000 unimpl
-:sra rD, rA is op2631=0b100100 & rD & rA & cd0015=0b0000000000000001 {
-	rD = rA s>> 1;
-}
-:src rD, rA is op2631=0b100100 & rD & rA & cd0015=0b0000000000100001 unimpl
-:srl rD, rA is op2631=0b100100 & rD & rA & cd0015=0b0000000001000001 unimpl
-:sext8 rD, rA is op2631=0b100100 & rD & rA & cd0015=0b0000000001100000 {
-	local tmp:1 = rA[0,8];
-	rD = sext(tmp);
-}
-:sext16 rD, rA is op2631=0b100100 & rD & rA & cd0015=0b0000000001100001 {
-	local tmp:2 = rA[0,16];
-	rD = sext(tmp);
-}
-:clz rD, rA is op2631=0b100100 & rD & rA & cd0015=0b0000000011100000 unimpl
-:swapb rD, RegA is op2631=0b100100 & rD & RegA & cd0015=0b0000000111100000 {
-    tmp:4 = RegA;
-    rD[0,8] =  tmp[24,8];
-    rD[8,8] =  tmp[16,8];
-    rD[16,8] = tmp[8,8];
-    rD[24,8] = tmp[0,8];
-}
-:swaph rD, RegA is op2631=0b100100 & rD & RegA & cd0015=0b0000000111100010 {
-    tmp:4 = RegA;
-    rD[0,16] = tmp[16,16];
-    rD[16,16] = tmp[0,16];
-}
-:wic rA, rB is op2631=0b100100 & cd2125=0b00000 & rA & rB & cd0010=0b00001101000 unimpl
-:wdc rA, rB is op2631=0b100100 & cd2125=0b00000 & rA & rB & cd0010=0b00001100100 unimpl
-:wdc.flush rA, rB is op2631=0b100100 & cd2125=0b00000 & rA & rB & cd0010=0b00001110100 unimpl
-:wdc.clear rA, rB is op2631=0b100100 & cd2125=0b00000 & rA & rB & cd0010=0b00001100110 unimpl
-:wdc.clear.ea rA, rB is op2631=0b100100 & cd2125=0b00000 & rA & rB & cd0010=0b00011100110 unimpl
+
+with :cd0010=0b00000000000 {
+  :or rD,RegA,RegB   is op2631=0b100000 & rD & RegA & RegB { rD = RegA | RegB; }
+  :and rD,RegA,RegB  is op2631=0b100001 & rD & RegA & RegB { rD = RegA & RegB; }
+  :xor rD,RegA,RegB  is op2631=0b100010 & rD & RegA & RegB { rD = RegA ^ RegB; }
+  :andn rD,RegA,RegB is op2631=0b100011 & rD & RegA & RegB { rD = RegA & ~RegB; }
+} # with cd0010=0b00000000000
+with : op2631=0b100100 {
+  :sra rD, RegA is rD & RegA & imm16u=0b0000000000000001 { 
+    rD = RegA s>> 1;
+    setCF(RegA[0,1]);
+  }
+  :src rD, RegA is rD & RegA & imm16u=0b0000000000100001 { 
+    rD = RegA >> 1;
+    rD[31,1] = $(MSR_C);
+    setCF(RegA[0,1]);
+  }
+  :srl rD, RegA is rD & RegA & imm16u=0b0000000001000001 { rD = RegA >> 1; }
+  :sext8 rD, rA is rD & rA & imm16u=0b0000000001100000 {
+    local tmp:1 = rA[0,8];
+    rD = sext(tmp);
+  }
+  :sext16 rD, rA is rD & rA & imm16u=0b0000000001100001 {
+    local tmp:2 = rA[0,16];
+    rD = sext(tmp);
+  }
+  :clz rD, rA is rD & rA & imm16u=0b0000000011100000 unimpl
+  :swapb rD, RegA is rD & RegA & imm16u=0b0000000111100000 {
+      tmp:4 = RegA;
+      rD[0,8] =  tmp[24,8];
+      rD[8,8] =  tmp[16,8];
+      rD[16,8] = tmp[8,8];
+      rD[24,8] = tmp[0,8];
+  }
+  :swaph rD, RegA is rD & RegA & imm16u=0b0000000111100010 {
+      tmp:4 = RegA;
+      rD[0,16] = tmp[16,16];
+      rD[16,16] = tmp[0,16];
+  }
+  :wic rA, rB           is cd2125=0b00000 & rA & rB & cd0010=0b00001101000 unimpl
+  :wdc rA, rB           is cd2125=0b00000 & rA & rB & cd0010=0b00001100100 unimpl
+  :wdc.flush rA, rB     is cd2125=0b00000 & rA & rB & cd0010=0b00001110100 unimpl
+  :wdc.clear rA, rB     is cd2125=0b00000 & rA & rB & cd0010=0b00001100110 unimpl
+  :wdc.clear.ea rA, rB  is cd2125=0b00000 & rA & rB & cd0010=0b00011100110 unimpl   
+} # with op2631=0b100100
+
 :mts rS, rA is op2631=0b100101 & cd2125=0 & rA & zr1415=0b11 & rS unimpl
 :mtse rS, rA is op2631=0b100101 & cd2125=0b01000 & rA & zr1415=0b11 & rS unimpl
 :mfs rD, rS is op2631=0b100101 & rD & cd1620=0 & zr1415=0b10 & rS unimpl
@@ -399,12 +382,22 @@ with : opc1=0b001 & opc2=0 {
 :msrset rD, imm14 is op2631=0b100101 & rD & cd1620=0 & zr1415=0 & imm14 unimpl
 
 with: op2631=0b100110 & cd0010=0b00000000000 {
-    :br rB is cd2125=0 & cd1620=0 & rB { goto [rB]; }
-    :brd rB is cd2125=0 & cd1620=0b10000 & rB { delayslot(1); goto [rB]; }
+    :br  RegB is rD=0 & cd1620=0 & RegB {
+      local dest:4 = RegB + inst_start;
+      goto [dest];
+    }
+
+    :brd RegB is rD=0 & cd1620=0b10000 & RegB {
+      local dest:4 = RegB + inst_start;
+      delayslot(1);
+      goto [dest];
+    }
+
     :brld rD,RegB is rD & cd1620=0b10100 & RegB {
         rD = inst_start;
+        local dest:4 = RegB + inst_start;
         delayslot(1);
-        call [RegB];
+        call [dest];
     }
     
     :bra RegB is cd2125=0 & cd1620=0b01000 & RegB {
@@ -435,105 +428,121 @@ with: op2631=0b100110 & cd0010=0b00000000000 {
 :bled rA, rB is op2631=0b100111 & cd2125=0b10011 & rA & rB & cd0010=0b00000000000 unimpl
 :bgtd rA, rB is op2631=0b100111 & cd2125=0b10100 & rA & rB & cd0010=0b00000000000 unimpl
 :bged rA, rB is op2631=0b100111 & cd2125=0b10101 & rA & rB & cd0010=0b00000000000 unimpl
-:ori rD, rA, imm is op2631=0b101000 & rD & rA & imm {
-	rD = rA | imm;
-}
-:andi rD, rA, imm is op2631=0b101001 & rD & rA & imm {
-	rD = rA & imm;
-}
-:xori rD, rA, imm is op2631=0b101010 & rD & rA & imm {
-	rD = rA ^ imm;
-}
-:andni rD, rA, imm is op2631=0b101011 & rD & rA & imm {
-	rD = rA & ~imm;
-}
 
-:rtsd rA, TBImm is op2631=0b101101 & cd2125=0b10000 & rA & TBImm {
+:ori rD,RegA,TBImm   is op2631=0b101000 & rD & RegA & TBImm { rD = RegA | TBImm; }
+:andi rD,RegA,TBImm  is op2631=0b101001 & rD & RegA & TBImm { rD = RegA & TBImm; }
+:xori rD,RegA,TBImm  is op2631=0b101010 & rD & RegA & TBImm { rD = RegA ^ TBImm; }
+:andni rD,RegA,TBImm is op2631=0b101011 & rD & RegA & TBImm { rD = RegA & ~TBImm; }
+
+:rtsd RegA, TBImm is op2631=0b101101 & cd2125=0b10000 & RegA & TBImm {
   delayslot(1);
-  local dest:4 = rA + TBImm;
-  dest = dest - inst_start;
+  local dest:4 = RegA + TBImm;
   return [dest];
 }
+:rtid RegA, TBImm is op2631=0b101101 & cd2125=0b10001 & RegA & TBImm unimpl
+:rtbd RegA, TBImm is op2631=0b101101 & cd2125=0b10010 & RegA & TBImm unimpl
+:rted RegA, TBImm is op2631=0b101101 & cd2125=0b10100 & RegA & TBImm unimpl
 
-TBDestImm: reloc is imm16s & ImmMode=0 
-  [ reloc = inst_start + imm16s; ] { export *:4 reloc; }
-TBDestImm: reloc is imm16u & ImmMode=1 & ImmH 
-  [ reloc = inst_start + (((ImmH $and 0x0000FFFF)<<16) $or (imm16u $and 0x0000FFFF)); ] 
-  { export *:4 reloc; }
-:rtid rA, imm is op2631=0b101101 & cd2125=0b10001 & rA & imm unimpl
-:rtbd rA, imm is op2631=0b101101 & cd2125=0b10010 & rA & imm unimpl
-:rted rA, imm is op2631=0b101101 & cd2125=0b10100 & rA & imm unimpl
-:mbar imm3 is op2631=0b101110 & imm3 & cd1620=0b00010 & cd0015=0b0000000000000100 unimpl
+with : op2631=0b101110 {
+  :bri  TBRel is rD=0 & cd1620=0 & TBRel {
+    goto TBRel;
+  }
+  
+  :brid TBRel is rD=0 & cd1620=0b10000 & TBRel {
+    delayslot(1);
+    goto TBRel;
+  }
+  
+  :brlid rD, TBRel is rD & cd1620=0b10100 & TBRel {
+    delayslot(1);
+    rD = inst_start;
+    call TBRel;
+  }
 
-:bri  TBDestImm is op2631=0b101110 & cd2125=0 & cd1620=0 & TBDestImm { goto TBDestImm; }
-:brid TBDestImm is op2631=0b101110 & cd2125=0 & cd1620=0b10000 & TBDestImm {
-  delayslot(1);
-  goto TBDestImm;
+  :brai TBAbs      is rD=0 & cd1620=0b01000 & TBAbs {
+    goto TBAbs;
+  }
+
+  :braid TBAbs     is rD=0 & cd1620=0b11000 & TBAbs {
+    delayslot(1);
+    goto TBAbs;
+  }
+  :bralid rD          is rD   & cd1620=0b11100 & TBAbs {
+    delayslot(1);
+    rD = inst_start;
+    call TBAbs;
+  }
+  :mbar imm3          is imm3 & cd1620=0b00010 & imm16u=0b0000000000000100 unimpl
+  :brki rD, TBImm     is rD & cd1620=0b01100 & TBImm unimpl
 }
 
-:brlid rD, TBDestImm is op2631=0b101110 & rD & cd1620=0b10100 & TBDestImm {
-  delayslot(1);
-  rD = inst_start;
-  call TBDestImm;
-}
+# Conditional branch
+with : op2631=0b101111 {
+  :beqi rA, TBRel is cd2125=0b00000 & rA & TBRel {
+    local tflg:1 = (rA == 0);
+    if (tflg) goto TBRel;
+  }
+  :bnei rA, TBRel is cd2125=0b00001 & rA & TBRel {
+    local tflg:1 = (rA != 0);
+    if tflg goto TBRel;
+  }
 
-:brai imm is op2631=0b101110 & cd2125=0 & cd1620=0b01000 & imm unimpl
-:braid imm is op2631=0b101110 & cd2125=0 & cd1620=0b11000 & imm unimpl
-:bralid rD is op2631=0b101110 & rD & cd1620=0b11100 & imm unimpl
-:brki rD, TBImm is op2631=0b101110 & rD & cd1620=0b01100 & TBImm unimpl
+  :blti rA, TBRel is cd2125=0b00010 & rA & TBRel {
+    local tflg:1 = (rA s< 0);
+    if tflg goto TBRel;
+  }
 
-:beqi rA, TBDestImm is op2631=0b101111 & cd2125=0b00000 & rA & TBDestImm {
-  if (rA == 0) goto TBDestImm;
-}
-:bnei rA, TBDestImm is op2631=0b101111 & cd2125=0b00001 & rA & TBDestImm {
-  if (rA != 0) goto TBDestImm;
-}
+  :blei rA, TBRel is cd2125=0b00011 & rA & TBRel {
+    local tflg:1 = (rA s<= 0);
+    if tflg goto TBRel;
+  }
 
-:blti rA, TBDestImm is op2631=0b101111 & cd2125=0b00010 & rA & TBDestImm {
-  if (rA s< 0) goto TBDestImm;
-}
+  :bgti rA, TBRel is cd2125=0b00100 & rA & TBRel {
+    local tflg:1 = (rA s> 0);
+    if tflg goto TBRel;
+  }
 
-:blei rA, TBDestImm is op2631=0b101111 & cd2125=0b00011 & rA & TBDestImm {
-  if (rA s<= 0) goto TBDestImm;
-}
+  :bgei rA, TBRel is cd2125=0b00101 & rA & TBRel {
+    local tflg:1 = (rA s>= 0);
+    if tflg goto TBRel;
+  }
 
-:bgti rA, TBDestImm is op2631=0b101111 & cd2125=0b00100 & rA & TBDestImm {
-  if (rA s> 0) goto TBDestImm;
-}
+  :beqid rA, TBRel is cd2125=0b10000 & rA & TBRel {
+    delayslot(1);
+    local tflg:1 = (rA == 0);
+    if tflg goto TBRel;
+  }
 
-:bgei rA, TBDestImm is op2631=0b101111 & cd2125=0b00101 & rA & TBDestImm {
-  if (rA s>= 0) goto TBDestImm;
-}
+  :bneid rA, TBRel is cd2125=0b10001 & rA & TBRel {
+    delayslot(1);
+    local tflg:1 = (rA != 0);
+    if tflg goto TBRel;
+  }
 
-:beqid rA, TBDestImm is op2631=0b101111 & cd2125=0b10000 & rA & TBDestImm {
-  delayslot(1);
-  if (rA == 0) goto TBDestImm;
-}
+  :bltid rA, TBRel is cd2125=0b10010 & rA & TBRel {
+    delayslot(1);
+    local tflg:1 = (rA s< 0);
+    if tflg goto TBRel;
+  }
 
-:bneid rA, TBDestImm is op2631=0b101111 & cd2125=0b10001 & rA & TBDestImm {
-  delayslot(1);
-  if (rA != 0) goto TBDestImm;
-}
+  :bleid rA, TBRel is cd2125=0b10011 & rA & TBRel {
+    delayslot(1);
+    local tflg:1 = (rA s<= 0);
+    if tflg goto TBRel;
+  }
 
-:bltid rA, TBDestImm is op2631=0b101111 & cd2125=0b10010 & rA & TBDestImm {
-  delayslot(1);
-  if (rA s< 0) goto TBDestImm;
-}
+  :bgtid rA, TBRel is cd2125=0b10100 & rA & TBRel {
+    delayslot(1);
+    local tflg:1 = (rA s> 0);
+    if tflg goto TBRel;
+  }
 
-:bleid rA, TBDestImm is op2631=0b101111 & cd2125=0b10011 & rA & TBDestImm {
-  delayslot(1);
-  if (rA s<= 0) goto TBDestImm;
-}
-
-:bgtid rA, TBDestImm is op2631=0b101111 & cd2125=0b10100 & rA & TBDestImm {
-  delayslot(1);
-  if (rA s> 0) goto TBDestImm;
-}
-
-:bgeid rA, TBDestImm is op2631=0b101111 & cd2125=0b10101 & rA & TBDestImm {
-  delayslot(1);
-  if (rA s>= 0) goto TBDestImm;
-}
+  :bgeid rA, TBRel is cd2125=0b10101 & rA & TBRel {
+    delayslot(1);
+    local tflg:1 = (rA s>= 0);
+    if tflg goto TBRel;
+  }
+} # with op2631=0b101111
 
 with : op2631=0b110000 {
     :lbu rD, rA, rB is rD & rA & rB & cd0010=0b00000000000 {
@@ -543,6 +552,7 @@ with : op2631=0b110000 {
     :lbur rD, rA, rB is rD & rA & rB & cd0010=0b01000000000 unimpl
     :lbuea rD, rA, rB is rD & rA & rB & cd0010=0b00010000000 unimpl
 }
+
 with : op2631=0b110001 {
     :lhu rD,rA,rB is rD & rA & rB & cd0010=0b00000000000 {
         local tmp:4 = rA + rB;
@@ -551,6 +561,7 @@ with : op2631=0b110001 {
     :lhur rD,rA,rB is rD & rA & rB & cd0010=0b01000000000 unimpl
     :lhuea rD,rA,rB is rD & rA & rB & cd0010=0b00010000000 unimpl
 }
+
 :lw rD, rA, rB is op2631=0b110010 & rD & rA & rB & cd0010=0b00000000000 {
 	local tmp:4 = rA + rB;
 	rD = *:4 tmp;
@@ -611,3 +622,6 @@ with : op2631=0b110110 {
 	local tmp:4 = RegA + TBImm;
     *[ram]:4 tmp = RDest;
 }
+
+@include "pcmp.sinc"
+@include "mb_stream.sinc"

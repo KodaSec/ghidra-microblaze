@@ -1,0 +1,17 @@
+:tneagetd.t rD, rB    is op2631=0b110010 & rD & rB & cd1620=0 & cd0010=0b000100000000 unimpl
+:tneagetd.n rD, rB    is op2631=0b110010 & rD & rB & cd1620=0 & cd0010=0b010000000000 unimpl
+:tneagetd.e rD, rB    is op2631=0b110010 & rD & rB & cd1620=0 & cd0010=0b000000100000 unimpl
+:tneagetd.a rD, rB    is op2631=0b110010 & rD & rB & cd1620=0 & cd0010=0b000001000000 unimpl
+:tnecagetd.t rD, rB   is op2631=0b110010 & rD & rB & cd1620=0 & cd0010=0b00110000000 unimpl
+:tnecagetd.n rD, rB   is op2631=0b110010 & rD & rB & cd1620=0 & cd0010=0b01100000000 unimpl
+:tnecagetd.e rD, rB   is op2631=0b110010 & rD & rB & cd1620=0 & cd0010=0b00100100000 unimpl
+:tnecagetd.a rD, rB   is op2631=0b110010 & rD & rB & cd1620=0 & cd0010=0b00101000000 unimpl
+
+:naputd.n rA, rB      is op2631=0b010011 & cd2125=0 & rA & rB & cd0010=0b11000000000 unimpl
+:naputd.a rA, rB      is op2631=0b010011 & cd2125=0 & rA & rB & cd0010=0b10001000000 unimpl
+:tnaputd.n rA, rB     is op2631=0b010011 & cd2125=0 & rA & rB & cd0010=0b11010000000 unimpl
+:tnaputd.a rA, rB     is op2631=0b010011 & cd2125=0 & rA & rB & cd0010=0b10011000000 unimpl
+:ncaputd.n rA, rB     is op2631=0b010011 & cd2125=0 & rA & rB & cd0010=0b11100000000 unimpl
+:ncaputd.a rA, rB     is op2631=0b010011 & cd2125=0 & rA & rB & cd0010=0b10101000000 unimpl
+:tncaputd.n rA, rB    is op2631=0b010011 & cd2125=0 & rA & rB & cd0010=0b1111000000 unimpl
+:tncaputd.a rA, rB    is op2631=0b010011 & cd2125=0 & rA & rB & cd0010=0b1011100000 unimpl
