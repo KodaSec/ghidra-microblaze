@@ -29,30 +29,39 @@ define context immstatus
 @define FSR_UF    "fsr[30,1]"
 @define FSR_DO    "fsr[31,1]"
 
-@define MSR_CC    "msr[0, 1]"
-@define MSR_VMS   "msr[17,1]"
-@define MSR_VM    "msr[18,1]"
-@define MSR_UMS   "msr[19,1]"
-@define MSR_UM    "msr[20,1]"
-@define MSR_PVR   "msr[21,1]"
-@define MSR_EIP   "msr[22,1]"
-@define MSR_EE    "msr[23,1]"
-@define MSR_DCE   "msr[24,1]"
-@define MSR_DZO   "msr[25,1]"
-@define MSR_ICE   "msr[26,1]"
-@define MSR_FSL   "msr[27,1]"
-@define MSR_BIP   "msr[28,1]"
-@define MSR_C     "msr[29,1]"
-@define MSR_IE    "msr[30,1]"
+# MSR
+# 31  30  29  28  27  26  25  24  23  22  21  20  19  18  17  16
+# CC [                                    RESERVED             ]
+#  15  14  13  12  11  10  9   8   7   6   5   4   3   2   1    0
+# RES VMS  VM UMS  UM PVR EIP EE DCE DZO ICE FSL BIP   C  IE  RES
+@define MSR_CC    "msr[31,1]"
+@define MSR_VMS   "msr[14,1]"
+@define MSR_VM    "msr[13,1]"
+@define MSR_UMS   "msr[12,1]"
+@define MSR_UM    "msr[11,1]"
+@define MSR_PVR   "msr[10,1]"
+@define MSR_EIP   "msr[9,1]"
+@define MSR_EE    "msr[8,1]"
+@define MSR_DCE   "msr[7,1]"
+@define MSR_DZO   "msr[6,1]"
+@define MSR_ICE   "msr[5,1]"
+@define MSR_FSL   "msr[4,1]"
+@define MSR_BIP   "msr[3,1]"
+@define MSR_C     "msr[2,1]"
+@define MSR_IE    "msr[1,1]"
 
 @define ESR_DS    "esr[19,1]"
 @define ESR_ESS   "esr[20,5]"
 @define ESR_EC    "esr[27,5]"
 
+# MSR macros
 macro setCF(val) {
     $(MSR_C) = val;
     $(MSR_CC) = val;
 }
+
+macro setMSR_BIPF(val){ $(MSR_BIP) = val; }
+macro setMSR_IEF(val){ $(MSR_BIP) = val; }
 
 macro setPC(val) {
   pc = val;
@@ -90,10 +99,10 @@ define token instr(32)
     cd2125 = (21,25)
     delay25 = (25,25)
     cd2124 = (21,24)
-    imm5 = (27,31)
     imm3 = (21,25)
     immw = (6,10)
     imm = (0,15)
+    imm_bs_shift_size = (0, 4)
     imm16u = (0,15)
     imm16s = (0,15) signed
     imm14  = (0,13)
@@ -103,6 +112,11 @@ define token instr(32)
     zr1415 = (14,15)
     zr15 = (15,15)
     fsl = (0,3)
+    # brX
+    # [20:16] = { delay, abs, link, ext[1:0] }
+      br_enable_delay = (20, 20)
+      br_oprA_flg_abs = (19, 19)
+      br_oprA_ext     = (16, 18)
 ;
 
 attach variables [ rD rA rB ]
@@ -258,7 +272,7 @@ with : opc3=0b010 & opc_k=0 & opc_c=0 & opc2=0 {
         rD = tmp[32, 32];
     }
 }
-:muli rD,RegA,imm is op2631=0b011000 & rD & RegA & imm { rD = RegA * imm; }
+:muli rD,RegA,TBImm is op2631=0b011000 & rD & RegA & TBImm { rD = RegA * TBImm; }
 
 with : op2631=0b010010 {
     :idiv  rD,RegA,RegB is rD & RegA & RegB & cd0010=0b00000000000 { rD = RegB s/ RegA; }
@@ -267,17 +281,17 @@ with : op2631=0b010010 {
 
 with : op2631=0b011001 {
     with : bs1115=0 {
-        :bsrli rD,rA,imm5 is rD & rA & bs0510=0b000000 & imm5 { rD = rA >> imm5; }
-        :bsrai rD,rA,imm5 is rD & rA & bs0510=0b010000 & imm5 { rD = rA s>> imm5; }
-        :bslli rD,rA,imm5 is rD & rA & bs0510=0b100000 & imm5 { rD = rA << imm5; }
+        :bsrli rD,rA,imm_bs_shift_size is rD & rA & bs0510=0b000000 & imm_bs_shift_size { rD = rA >>  imm_bs_shift_size; }
+        :bsrai rD,rA,imm_bs_shift_size is rD & rA & bs0510=0b010000 & imm_bs_shift_size { rD = rA s>> imm_bs_shift_size; }
+        :bslli rD,rA,imm_bs_shift_size is rD & rA & bs0510=0b100000 & imm_bs_shift_size { rD = rA <<  imm_bs_shift_size; }
     } # bs1115=0
-    :bsefi rD, rA, immw, imm5 is rD & rA & bs1115=0b01000 & immw & cd0505=0 & imm5 {
+    :bsefi rD, rA, immw, imm_bs_shift_size is rD & rA & bs1115=0b01000 & immw & cd0505=0 & imm_bs_shift_size {
         local mask:4 = ~(0xFFFFFFFF << immw);
-        rD = (rA >> imm5) & mask;
+        rD = (rA >> imm_bs_shift_size) & mask;
     }
-    :bsifi rD, rA, immw, imm5 is rD & rA & bs1115=0b10000 & immw & cd0505=0 & imm5 {
-        local mask:4 = (0xFFFFFFFF << (immw + 1)) ^ (0xFFFFFFFF << imm5);
-        rD = ((rA << imm5) & mask)|(rD & mask);
+    :bsifi rD, rA, immw, imm_bs_shift_size is rD & rA & bs1115=0b10000 & immw & cd0505=0 & imm_bs_shift_size {
+        local mask:4 = (0xFFFFFFFF << (immw + 1)) ^ (0xFFFFFFFF << imm_bs_shift_size);
+        rD = ((rA << imm_bs_shift_size) & mask)|(rD & mask);
     }
 }
 
@@ -338,74 +352,76 @@ with : op2631=0b100100 {
 # opALink: "l" is oprA_l=1 & rD { rD = inst_start; export 1:1; }
 # opALink:     is oprA_l=0 { export 0:1; }
 
+BRFlagDelay: "d" is br_enable_delay=1 { delayslot(1); export 1:1; }
+BRFlagDelay:     is br_enable_delay=0 { export 0:1; }
+
 with: op2631=0b100110 & cd0010=0b00000000000 {
-    :br  RegB is rD=0 & cd1620=0 & RegB {
+    :br^BRFlagDelay RegB is rD=0 & BRFlagDelay & br_oprA_flg_abs=0 & br_oprA_ext=0 & RegB {
       local dest:4 = RegB + inst_start;
-      goto [dest];
+      setPC(dest);
+      build BRFlagDelay;
+      goto [pc];
     }
-
-    :brd RegB is rD=0 & cd1620=0b10000 & RegB {
-      local dest:4 = RegB + inst_start;
-      delayslot(1);
-      goto [dest];
-    }
-
+    
     :brld rD,RegB is rD & cd1620=0b10100 & RegB {
         rD = inst_start;
         local dest:4 = RegB + inst_start;
         delayslot(1);
         call [dest];
     }
-    
-    :bra RegB is cd2125=0 & cd1620=0b01000 & RegB {
-        goto [RegB];
+
+    :bra^BRFlagDelay RegB is rD=0 & BRFlagDelay & br_oprA_flg_abs=1 & br_oprA_ext=0 & RegB {
+        local dest:4 = RegB;
+        build BRFlagDelay;
+        goto [dest];
     }
-    :brad RegB is cd2125=0 & cd1620=0b11000 & RegB {
-        delayslot(1);
-        goto [RegB];
-    }
-    :brald rD, RegB is rD & cd1620=0b11100 & RegB {
-        build RegB;
+
+    :brald rD,RegB is rD & cd1620=0b11100 & RegB {
         rD = inst_start;
+        local dest:4 = RegB;
         delayslot(1);
-        call [RegB];
+        call [dest];
+    }
+
+    :brk rD,RegB is rD & cd1620=0b01100 & RegB {
+        rD = inst_start;
+        local dest:4 = RegB;
+        setPC(dest);
+        setMSR_BIPF(1:1);
+        goto [pc];
     }
 }
 
-:brk rD, rB is op2631=0b100110 & rD & cd1620=0b01100 & rB & cd0010=0b00000000000 unimpl
-:beq rA, rB is op2631=0b100111 & cd2125=0b00000 & rA & rB & cd0010=0b00000000000 unimpl
-:bne rA, rB is op2631=0b100111 & cd2125=0b00001 & rA & rB & cd0010=0b00000000000 unimpl
-:blt rA, rB is op2631=0b100111 & cd2125=0b00010 & rA & rB & cd0010=0b00000000000 unimpl
-:ble rA, rB is op2631=0b100111 & cd2125=0b00011 & rA & rB & cd0010=0b00000000000 unimpl
-:bgt rA, rB is op2631=0b100111 & cd2125=0b00100 & rA & rB & cd0010=0b00000000000 unimpl
-:bge rA, rB is op2631=0b100111 & cd2125=0b00101 & rA & rB & cd0010=0b00000000000 unimpl
-:beqd rA, rB is op2631=0b100111 & cd2125=0b10000 & rA & rB & cd0010=0b00000000000 unimpl
-:bned rA, rB is op2631=0b100111 & cd2125=0b10001 & rA & rB & cd0010=0b00000000000 unimpl
-:bltd rA, rB is op2631=0b100111 & cd2125=0b10010 & rA & rB & cd0010=0b00000000000 unimpl
-:bled rA, rB is op2631=0b100111 & cd2125=0b10011 & rA & rB & cd0010=0b00000000000 unimpl
-:bgtd rA, rB is op2631=0b100111 & cd2125=0b10100 & rA & rB & cd0010=0b00000000000 unimpl
-:bged rA, rB is op2631=0b100111 & cd2125=0b10101 & rA & rB & cd0010=0b00000000000 unimpl
+:beq  rA,rB is op2631=0b100111 & cd2125=0b00000 & rA & rB & cd0010=0b00000000000 unimpl
+:beqd rA,rB is op2631=0b100111 & cd2125=0b10000 & rA & rB & cd0010=0b00000000000 unimpl
+:bne  rA,rB is op2631=0b100111 & cd2125=0b00001 & rA & rB & cd0010=0b00000000000 unimpl
+:bned rA,rB is op2631=0b100111 & cd2125=0b10001 & rA & rB & cd0010=0b00000000000 unimpl
+:blt  rA,rB is op2631=0b100111 & cd2125=0b00010 & rA & rB & cd0010=0b00000000000 unimpl
+:bltd rA,rB is op2631=0b100111 & cd2125=0b10010 & rA & rB & cd0010=0b00000000000 unimpl
+:ble  rA,rB is op2631=0b100111 & cd2125=0b00011 & rA & rB & cd0010=0b00000000000 unimpl
+:bled rA,rB is op2631=0b100111 & cd2125=0b10011 & rA & rB & cd0010=0b00000000000 unimpl
+:bgt  rA,rB is op2631=0b100111 & cd2125=0b00100 & rA & rB & cd0010=0b00000000000 unimpl
+:bgtd rA,rB is op2631=0b100111 & cd2125=0b10100 & rA & rB & cd0010=0b00000000000 unimpl
+:bge  rA,rB is op2631=0b100111 & cd2125=0b00101 & rA & rB & cd0010=0b00000000000 unimpl
+:bged rA,rB is op2631=0b100111 & cd2125=0b10101 & rA & rB & cd0010=0b00000000000 unimpl
 
 :ori rD,RegA,TBImm   is op2631=0b101000 & rD & RegA & TBImm { rD = RegA | TBImm; }
 :andi rD,RegA,TBImm  is op2631=0b101001 & rD & RegA & TBImm { rD = RegA & TBImm; }
 :xori rD,RegA,TBImm  is op2631=0b101010 & rD & RegA & TBImm { rD = RegA ^ TBImm; }
 :andni rD,RegA,TBImm is op2631=0b101011 & rD & RegA & TBImm { rD = RegA & ~TBImm; }
 
-
 with : op2631=0b101110 {
-  :bri  TBRel is rD=0 & cd1620=0 & TBRel {
-    goto TBRel;
+  :bri TBRel       is rD=0 & cd1620=0b00000 & TBRel {
+      goto TBRel;
   }
-  
-  :brid TBRel is rD=0 & cd1620=0b10000 & TBRel {
-    delayslot(1);
-    goto TBRel;
+  :brid TBRel      is rD=0 & cd1620=0b10000 & TBRel {
+      delayslot(1);
+      goto TBRel;
   }
-  
   :brlid rD, TBRel is rD & cd1620=0b10100 & TBRel {
-    delayslot(1);
-    rD = inst_start;
-    call TBRel;
+      delayslot(1);
+      rD = inst_start;
+      call TBRel;
   }
 
   :brai TBAbs      is rD=0 & cd1620=0b01000 & TBAbs {
@@ -421,8 +437,15 @@ with : op2631=0b101110 {
     rD = inst_start;
     call TBAbs;
   }
-  :mbar imm3          is imm3 & cd1620=0b00010 & imm16u=0b0000000000000100 unimpl
-  :brki rD, TBImm     is rD & cd1620=0b01100 & TBImm unimpl
+
+  :brki rD, TBAbs is rD & cd1620=0b01100 & TBAbs {
+      rD = inst_start;
+      setPC(TBAbs);
+      goto [pc];
+  }
+
+  # Nothing to do
+  :mbar imm3 is imm3 & cd1620=0b00010 & imm16u=0b0000000000000100 {}
 }
 
 # Conditional branch
