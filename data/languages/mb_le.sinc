@@ -58,14 +58,28 @@ macro setPC(val) {
   pc = val;
 }
 
+macro swapByteOrder4(dest, src){
+  dest[0,8] =  src[24,8];
+  dest[8,8] =  src[16,8];
+  dest[16,8] = src[8,8];
+  dest[24,8] = src[0,8];
+}
+
 define token instr(32)
     op2631 = (26, 31)
-    opc1   = (29, 31)
+    opc3   = (29, 31)
+    opcsub = (26, 28)
     opc_k  = (28, 28)
     opc_c  = (27, 27)
     opc2   = (26, 26)
-    rD = (21,25)
+    rD = (21, 25)
+    oprD_d = (25, 25)
+    oprD_21_4 = (21, 24)
     rA = (16,20)
+    oprA_d = (20, 20)
+    oprA_a = (19, 19)
+    oprA_l = (18, 18)
+    oprA_zero = (16, 20)
     rB = (11,15)
     rS = (0,13)
     cd0010 = (0,10)
@@ -83,9 +97,11 @@ define token instr(32)
     imm16u = (0,15)
     imm16s = (0,15) signed
     imm14  = (0,13)
+    imm15 = (0, 14)
     bs1115 = (11,15)
     bs0510 = (5,10)
     zr1415 = (14,15)
+    zr15 = (15,15)
     fsl = (0,3)
 ;
 
@@ -135,7 +151,7 @@ RegB: rB is rB & rB=0 { export 0:4; }
     globalset(inst_next, ImmH); 
   ]{}
 
-with : opc1=0b000 & opc2=0 & cd0010=0b00000000000 {
+with : opc3=0b000 & opc2=0 & cd0010=0b00000000000 {
     with : opc_k=0 { 
         :add rD, RegA, RegB is opc_c=0 & rD & RegA & RegB {
             rD = RegA + RegB;
@@ -184,7 +200,7 @@ with : opc1=0b000 & opc2=0 & cd0010=0b00000000000 {
   rD = rB + ~rA + tmp;
 }
 
-with : opc1=0b001 & opc2=0 {
+with : opc3=0b001 & opc2=0 {
     :addi rD,RegA,TBImm is opc_k=0 & opc_c=0 & rD & RegA & TBImm {
         rD = RegA + TBImm;
         setCF(scarry(RegA, TBImm));
@@ -356,11 +372,7 @@ with : op2631=0b100100 {
   }
   :clz rD, rA is rD & rA & imm16u=0b0000000011100000 unimpl
   :swapb rD, RegA is rD & RegA & imm16u=0b0000000111100000 {
-      tmp:4 = RegA;
-      rD[0,8] =  tmp[24,8];
-      rD[8,8] =  tmp[16,8];
-      rD[16,8] = tmp[8,8];
-      rD[24,8] = tmp[0,8];
+      swapByteOrder4(rD, RegA);
   }
   :swaph rD, RegA is rD & RegA & imm16u=0b0000000111100010 {
       tmp:4 = RegA;
@@ -374,12 +386,14 @@ with : op2631=0b100100 {
   :wdc.clear.ea rA, rB  is cd2125=0b00000 & rA & rB & cd0010=0b00011100110 unimpl   
 } # with op2631=0b100100
 
-:mts rS, rA is op2631=0b100101 & cd2125=0 & rA & zr1415=0b11 & rS unimpl
-:mtse rS, rA is op2631=0b100101 & cd2125=0b01000 & rA & zr1415=0b11 & rS unimpl
-:mfs rD, rS is op2631=0b100101 & rD & cd1620=0 & zr1415=0b10 & rS unimpl
-:mfse rD, rS is op2631=0b100101 & rD & cd1620=0b01000 & cd1415=0b10 & zr1415=0b10 & rS unimpl
-:msrclr rD, imm14 is op2631=0b100101 & rD & cd1620=0b00001 & zr1415=0 & imm14 unimpl
-:msrset rD, imm14 is op2631=0b100101 & rD & cd1620=0 & zr1415=0 & imm14 unimpl
+@include "mb_spreg.sinc"
+
+# opADelay: "d" is oprA_d=1 { delayslot(1); export 1:1; }
+# opADelay:     is oprA_d=0 { export 0:1; }
+# brDest: "a" is oprA_a=1 { export 1:1; }
+# brDest:     is oprA_a=0 { export 0:1; }
+# opALink: "l" is oprA_l=1 & rD { rD = inst_start; export 1:1; }
+# opALink:     is oprA_l=0 { export 0:1; }
 
 with: op2631=0b100110 & cd0010=0b00000000000 {
     :br  RegB is rD=0 & cd1620=0 & RegB {
@@ -434,14 +448,6 @@ with: op2631=0b100110 & cd0010=0b00000000000 {
 :xori rD,RegA,TBImm  is op2631=0b101010 & rD & RegA & TBImm { rD = RegA ^ TBImm; }
 :andni rD,RegA,TBImm is op2631=0b101011 & rD & RegA & TBImm { rD = RegA & ~TBImm; }
 
-:rtsd RegA, TBImm is op2631=0b101101 & cd2125=0b10000 & RegA & TBImm {
-  delayslot(1);
-  local dest:4 = RegA + TBImm;
-  return [dest];
-}
-:rtid RegA, TBImm is op2631=0b101101 & cd2125=0b10001 & RegA & TBImm unimpl
-:rtbd RegA, TBImm is op2631=0b101101 & cd2125=0b10010 & RegA & TBImm unimpl
-:rted RegA, TBImm is op2631=0b101101 & cd2125=0b10100 & RegA & TBImm unimpl
 
 with : op2631=0b101110 {
   :bri  TBRel is rD=0 & cd1620=0 & TBRel {
@@ -566,7 +572,11 @@ with : op2631=0b110001 {
 	local tmp:4 = rA + rB;
 	rD = *:4 tmp;
 }
-:lwr rD, rA, rB is op2631=0b110010 & rD & rA & rB & cd0010=0b01000000000 unimpl
+:lwr rD, rA, rB is op2631=0b110010 & rD & rA & rB & cd0010=0b01000000000 {
+  local tmp:4 = rA + rB;
+  local tv:4 = *:4 tmp;
+  swapByteOrder4(rD, tv);
+}
 :lwx rD, rA, rB is op2631=0b110010 & rD & rA & rB & cd0010=0b10000000000 unimpl
 :lwea rD, rA, rB is op2631=0b110010 & rD & rA & rB & cd0010=0b00010000000 unimpl
 RDest: rD is rD & rD=0 { export 0:4; }

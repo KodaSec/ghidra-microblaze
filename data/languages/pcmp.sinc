@@ -1,5 +1,33 @@
+@ifndef MB_INST_PCMP
+@define MB_INST_PCMP
+
 with : cd0010=0b10000000000 {
-    :pcmpbf rD,RegA,RegB is op2631=0b100000 & rD & RegA & RegB unimpl
+    :pcmpbf rD,RegA,RegB is op2631=0b100000 & rD & RegA & RegB {
+        rD = 0;
+        if (RegA[24,8] == RegB[24,8]) goto <pcmpbf_matched_1>;
+        if (RegA[16,8] == RegB[16,8]) goto <pcmpbf_matched_2>;
+        if (RegA[8, 8] == RegB[8, 8]) goto <pcmpbf_matched_3>;
+        if (RegA[0, 8] == RegB[0, 8]) goto <pcmpbf_matched_4>;
+        goto <pcmpbf_unmatched>;
+        
+        <pcmpbf_matched_1>
+            rD = 1; goto <pcmpbf_end>;
+        
+        <pcmpbf_matched_2>
+            rD = 2; goto <pcmpbf_end>;
+        
+        <pcmpbf_matched_3>
+            rD = 3; goto <pcmpbf_end>;
+        
+        <pcmpbf_matched_4>
+            rD = 4; goto <pcmpbf_end>;
+        
+        <pcmpbf_unmatched>
+            rD = 0; goto <pcmpbf_end>;
+        
+        <pcmpbf_end>
+            goto inst_next;
+    }
     :pcmpeq rD,RegA,RegB is op2631=0b100010 & rD & RegA & RegB {
         local tmp:1 = (RegA == RegB);
         rD = zext(tmp);
@@ -9,3 +37,5 @@ with : cd0010=0b10000000000 {
         rD = zext(tmp);
     }
 } # with cd0010=0b10000000000
+
+@endif

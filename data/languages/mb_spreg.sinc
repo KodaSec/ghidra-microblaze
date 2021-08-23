@@ -1,0 +1,41 @@
+@ifndef MB_INST_SPREG
+@define MB_INST_SPREG
+
+# RegS: Special register table
+RegS: "rpc"  is rS=0x0000 { export pc; }
+RegS: "rmsr" is rS=0x0001 { export msr; }
+RegS: "rslr" is rS=0x0800 { export slr; }
+RegS: "rshr" is rS=0x0802 { export shr; }
+
+:mts RegS, rA is op2631=0b100101 & cd2125=0 & rA & zr1415=0b11 & RegS { RegS = rA; }
+:mtse rS, rA is op2631=0b100101 & cd2125=0b01000 & rA & zr1415=0b11 & rS unimpl
+:mfs rD, RegS is op2631=0b100101 & rD & cd1620=0 & zr1415=0b10 & RegS { rD = RegS; }
+:mfse rD, rS is op2631=0b100101 & rD & cd1620=0b01000 & cd1415=0b10 & zr1415=0b10 & rS unimpl
+:msrclr rD, imm15 is op2631=0b100101 & rD & cd1620=0b10001 & zr15=0 & imm15 {
+    rD = msr;
+    local tmp:4 = 0x7FFF & imm15;
+    msr = msr & (~tmp);
+}
+:msrset rD, imm15 is op2631=0b100101 & rD & cd1620=0b10000 & zr15=0 & imm15 {
+    rD = msr;
+    local tmp:4 = 0x7FFF & imm15;
+    msr = msr | tmp;
+}
+
+:rtsd RegA, TBImm is op2631=0b101101 & cd2125=0b10000 & RegA & TBImm {
+  delayslot(1);
+  local dest:4 = RegA + TBImm;
+  return [dest];
+}
+
+:rtid RegA, TBImm is op2631=0b101101 & cd2125=0b10001 & RegA & TBImm {
+    delayslot(1);
+    $(MSR_IE) = 1;
+    local dest:4 = RegA + TBImm;
+    return [dest];
+}
+
+:rtbd RegA, TBImm is op2631=0b101101 & cd2125=0b10010 & RegA & TBImm unimpl
+:rted RegA, TBImm is op2631=0b101101 & cd2125=0b10100 & RegA & TBImm unimpl
+
+@endif
