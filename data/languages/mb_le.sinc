@@ -288,11 +288,12 @@ with : op2631=0b010001 {
 }
 
 with :cd0010=0b00000000000 {
-  :or rD,RegA,RegB   is op2631=0b100000 & rD & RegA & RegB { rD = RegA | RegB; }
-  :and rD,RegA,RegB  is op2631=0b100001 & rD & RegA & RegB { rD = RegA & RegB; }
-  :xor rD,RegA,RegB  is op2631=0b100010 & rD & RegA & RegB { rD = RegA ^ RegB; }
+  :or   rD,RegA,RegB is op2631=0b100000 & rD & RegA & RegB { rD = RegA | RegB; }
+  :and  rD,RegA,RegB is op2631=0b100001 & rD & RegA & RegB { rD = RegA & RegB; }
+  :xor  rD,RegA,RegB is op2631=0b100010 & rD & RegA & RegB { rD = RegA ^ RegB; }
   :andn rD,RegA,RegB is op2631=0b100011 & rD & RegA & RegB { rD = RegA & ~RegB; }
 } # with cd0010=0b00000000000
+
 with : op2631=0b100100 {
   :sra rD, RegA is rD & RegA & imm16u=0b0000000000000001 { 
     rD = RegA s>> 1;
@@ -304,15 +305,15 @@ with : op2631=0b100100 {
     setCF(RegA[0,1]);
   }
   :srl rD, RegA is rD & RegA & imm16u=0b0000000001000001 { rD = RegA >> 1; }
-  :sext8 rD, rA is rD & rA & imm16u=0b0000000001100000 {
-    local tmp:1 = rA[0,8];
+  :sext8 rD, RegA is rD & RegA & imm16u=0b0000000001100000 {
+    local tmp:1 = RegA[0,8];
     rD = sext(tmp);
   }
-  :sext16 rD, rA is rD & rA & imm16u=0b0000000001100001 {
-    local tmp:2 = rA[0,16];
+  :sext16 rD, RegA is rD & RegA & imm16u=0b0000000001100001 {
+    local tmp:2 = RegA[0,16];
     rD = sext(tmp);
   }
-  :clz rD, rA is rD & rA & imm16u=0b0000000011100000 unimpl
+  :clz rD, RegA is rD & RegA & imm16u=0b0000000011100000 unimpl
   :swapb rD, RegA is rD & RegA & imm16u=0b0000000111100000 {
       swapByteOrder4(rD, RegA);
   }
@@ -493,42 +494,42 @@ with : op2631=0b101111 {
 } # with op2631=0b101111
 
 with : op2631=0b110000 {
-    :lbu rD, rA, rB is rD & rA & rB & cd0010=0b00000000000 {
-        local tmp:4 = rA + rB;
+    :lbu   rD,RegA,RegB is rD & RegA & RegB & cd0010=0b00000000000 {
+        local tmp:4 = RegA + RegB;
         rD = zext(*:1 tmp);
     }
-    :lbur rD, rA, rB is rD & rA & rB & cd0010=0b01000000000 unimpl
-    :lbuea rD, rA, rB is rD & rA & rB & cd0010=0b00010000000 unimpl
+    :lbur  rD,RegA RegB is rD & RegA & RegB & cd0010=0b01000000000 unimpl
+    :lbuea rD,RegA,RegB is rD & RegA & RegB & cd0010=0b00010000000 unimpl
 }
 
 with : op2631=0b110001 {
-    :lhu rD,rA,rB is rD & rA & rB & cd0010=0b00000000000 {
-        local tmp:4 = rA + rB;
+    :lhu  rD,RegA,RegB is rD & RegA & RegB & cd0010=0b00000000000 {
+        local tmp:4 = RegA + RegB;
         rD = zext(*:2 tmp);
     }
-    :lhur rD,rA,rB is rD & rA & rB & cd0010=0b01000000000 unimpl
-    :lhuea rD,rA,rB is rD & rA & rB & cd0010=0b00010000000 unimpl
+    :lhur  rD,RegA,RegB is rD & RegA & RegB & cd0010=0b01000000000 unimpl
+    :lhuea rD,RegA,RegB is rD & RegA & RegB & cd0010=0b00010000000 unimpl
 }
 
-:lw rD, rA, rB is op2631=0b110010 & rD & rA & rB & cd0010=0b00000000000 {
-	local tmp:4 = rA + rB;
-	rD = *:4 tmp;
+:lw   rD,RegA,RegB is op2631=0b110010 & rD & RegA & RegB & cd0010=0b00000000000 {
+    local tmp:4 = RegA + RegB;
+    rD = *:4 tmp;
 }
-:lwr rD, rA, rB is op2631=0b110010 & rD & rA & rB & cd0010=0b01000000000 {
-  local tmp:4 = rA + rB;
-  local tv:4 = *:4 tmp;
-  swapByteOrder4(rD, tv);
+:lwr  rD,RegA,RegB is op2631=0b110010 & rD & RegA & RegB & cd0010=0b01000000000 {
+    local tmp:4 = RegA + RegB;
+    local tv:4 = *:4 tmp;
+    swapByteOrder4(rD, tv);
 }
-:lwx rD, rA, rB is op2631=0b110010 & rD & rA & rB & cd0010=0b10000000000 unimpl
-:lwea rD, rA, rB is op2631=0b110010 & rD & rA & rB & cd0010=0b00010000000 unimpl
+:lwx  rD,RegA,RegB is op2631=0b110010 & rD & RegA & RegB & cd0010=0b10000000000 unimpl
+:lwea rD,RegA,RegB is op2631=0b110010 & rD & RegA & RegB & cd0010=0b00010000000 unimpl
 RDest: rD is rD & rD=0 { export 0:4; }
 RDest: rD is rD { export rD; }
 with : op2631=0b110100 {
-    :sb  RDest, rA, rB is RDest & rA & rB & cd0010=0b00000000000 {
-        local tmp:4 = rA + rB;
+    :sb  RDest, RegA, RegB is RDest & RegA & RegB & cd0010=0b00000000000 {
+        local tmp:4 = RegA + RegB;
         *:1 tmp = RDest;
     }
-    :sbr rD, rA, rB is rD & rA & rB & cd0010=0b01000000000 unimpl
+    :sbr rD, RegA, RegB is rD & RegA & RegB & cd0010=0b01000000000 unimpl
 }
 
 with : op2631=0b110101 {
