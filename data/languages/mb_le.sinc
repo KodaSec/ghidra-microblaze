@@ -173,119 +173,118 @@ with : opc3=0b000 & opc2=0 & cd0010=0b00000000000 {
     }
 }
 
-:rsub rD, RegA, RegB is op2631=0b000001 & rD & RegA & RegB & cd0010=0b00000000000 {
-    rD = RegB - RegA;
-    setCF(sborrow(RegB, RegA));
-}
-
-:rsubc rD, rA, rB is op2631=0b000011 & rD & rA & rB & cd0010=0b00000000000 {
-    local tmp:4 = zext($(MSR_C));
-    rD = rB + ~rA + tmp;
-    setCF(sborrow(rB, rA));
-}
-
-:rsubk rD, RegA, RegB is op2631=0b000101 & rD & RegA & RegB & cd0010=0b00000000000 {
-    rD = RegB - RegA;
-}
-
-:cmp rD, rA, rB is op2631=0b000101 & rD & rA & rB & cd0010=0b00000000001 {
-	rD = rB + ~rA + 1;
-    rD[31,1] = (rA s> rB);
-}
-
-:cmpu rD, rA, rB is op2631=0b000101 & rD & rA & rB & cd0010=0b00000000011 {
-	rD = rB + ~rA + 1;
-	rD[31,1] = (rA > rB);
-}
-:rsubkc rD, rA, rB is op2631=0b000111 & rD & rA & rB & cd0010=0b00000000000 {
-  local tmp:4 = zext($(MSR_C));
-  rD = rB + ~rA + tmp;
-}
-
-with : opc3=0b001 & opc2=0 {
-    :addi rD,RegA,TBImm is opc_k=0 & opc_c=0 & rD & RegA & TBImm {
-        rD = RegA + TBImm;
-        setCF(scarry(RegA, TBImm));
+with : opc3=0b000 & opc2=1 { # rsub/cmp
+    :rsub   rD,RegA,RegB is opc_k=0 & opc_c=0 & rD & RegA & RegB & cd0010=0b00000000000 {
+        rD = RegB - RegA;
+        setCF(sborrow(RegB, RegA));
     }
-    :addic rD,RegA,TBImm is opc_k=0 & opc_c=1 & rD & RegA & TBImm {
-        local tmpCF:1 = scarry(RegA, TBImm);
-        rD = RegA + TBImm;
-        tmpCF = tmpCF | scarry(rD, zext($(MSR_C)));
-        rD = rD + zext($(MSR_C));
-        setCF(tmpCF);
+    :rsubc  rD,RegA,RegB is opc_k=0 & opc_c=1 & rD & RegA & RegB & cd0010=0b00000000000 {
+        local tmp:4 = zext($(MSR_C));
+        rD = RegB + ~RegA + tmp;
+        setCF(sborrow(RegB, RegA));
     }
-    :addik rD,RegA,TBImm is opc_k=1 & opc_c=0 & rD & RegA & TBImm {
-        rD = RegA + TBImm;
+    :rsubk  rD,RegA,RegB is opc_k=1 & opc_c=0 & rD & RegA & RegB & cd0010=0b00000000000 {
+        rD = RegB - RegA;
     }
-    :addikc rD,RegA,TBImm is opc_k=1 & opc_c=1 & rD & RegA & TBImm {
-        rD = RegA + TBImm + zext($(MSR_C));
+    :rsubkc rD,RegA,RegB is opc_k=1 & opc_c=1 & rD & RegA & RegB & cd0010=0b00000000000 {
+        local tmp:4 = zext($(MSR_C));
+        rD = RegB + ~RegA + tmp;
     }
-} # opc=0b001 (addi)
+    :cmp    rD,RegA,RegB is opc_k=1 & opc_c=0 & rD & RegA & RegB & cd0010=0b00000000001 {
+        rD = RegB - RegA;
+        rD[31,1] = (RegA s> RegB);
+    }
+    :cmpu   rD,RegA,RegB is opc_k=1 & opc_c=0 & rD & RegA & RegB & cd0010=0b00000000011 {
+        rD = RegB - RegA;
+        rD[31,1] = (RegA > RegB);
+    }
+} # rsub/cmp
 
-:rsubi rD, RegA, imm is op2631=0b001001 & rD & RegA & imm {
-	rD = imm + ~RegA + 1;
-	setCF(~sborrow(imm, RegA));
-}
+with : opc3=0b001 {
+    with : opc2=0 { # addi[kc]
+        :addi rD,RegA,TBImm is opc_k=0 & opc_c=0 & rD & RegA & TBImm {
+            rD = RegA + TBImm;
+            setCF(scarry(RegA, TBImm));
+        }
+        :addic rD,RegA,TBImm is opc_k=0 & opc_c=1 & rD & RegA & TBImm {
+            local tmpCF:1 = scarry(RegA, TBImm);
+            rD = RegA + TBImm;
+            tmpCF = tmpCF | scarry(rD, zext($(MSR_C)));
+            rD = rD + zext($(MSR_C));
+            setCF(tmpCF);
+        }
+        :addik rD,RegA,TBImm is opc_k=1 & opc_c=0 & rD & RegA & TBImm {
+            rD = RegA + TBImm;
+        }
+        :addikc rD,RegA,TBImm is opc_k=1 & opc_c=1 & rD & RegA & TBImm {
+            rD = RegA + TBImm + zext($(MSR_C));
+        }
+    } # opc2=0 (addi[kc])
 
-:rsubic rD, RegA, imm is op2631=0b001011 & rD & RegA & imm {
-    local tmp:4 = zext($(MSR_C));
-    rD = imm + ~RegA + tmp;
-	  setCF(~sborrow(imm, RegA));
-}
+    with : opc2=1 { # rsubi[kc]
+        :rsubi   rD,RegA,TBImm is opc_k=0 & opc_c=0 & rD & RegA & TBImm {
+          rD = TBImm + ~RegA + 1;
+          setCF(~sborrow(TBImm, RegA));
+        }
+        :rsubic  rD,RegA,TBImm is opc_k=0 & opc_c=1 & rD & RegA & TBImm {
+            local tmp:4 = zext($(MSR_C));
+            rD = TBImm + ~RegA + tmp;
+            setCF(~sborrow(TBImm, RegA));
+        }
+        :rsubik  rD,RegA,TBImm is opc_k=1 & opc_c=0 & rD & RegA & TBImm {
+            rD = TBImm - RegA;
+        }
+        :rsubikc rD,RegA,TBImm is opc_k=1 & opc_c=1 & rD & RegA & TBImm {
+            local tmp:4 = zext($(MSR_C));
+            rD = TBImm + ~RegA + tmp;
+        }
+    } # opc2=1 (rsubi[kc])
+} # opc3=0b001 (addi/subi)
 
-:rsubik rD, RegA, imm is op2631=0b001101 & rD & RegA & imm {
-    rD = imm - RegA;
+with : opc3=0b010 & opc_k=0 & opc_c=0 & opc2=0 {
+    :mul rD,RegA,RegB is rD & RegA & RegB & cd0010=0b00000000000 {
+        rD = RegA * RegB;
+    }
+    :mulh rD,RegA,RegB is rD & RegA & RegB & cd0010=0b00000000001 {
+        local tmp:8 = sext(RegA) * sext(RegB);
+        rD = tmp[32, 32];
+    }
+    :mulhu rD,RegA,RegB is rD & RegA & RegB & cd0010=0b00000000011 {
+        local tmp:8 = zext(RegA) * zext(RegB);
+        rD = tmp[32, 32];
+    }
+    :mulhsu rD,RegA,RegB is rD & RegA & RegB & cd0010=0b00000000010 {
+        local tmp:8 = sext(RegA) * zext(RegB);
+        rD = tmp[32, 32];
+    }
 }
-
-:rsubikc rD, RegA, imm is op2631=0b001111 & rD & RegA & imm {
-    local tmp:4 = zext($(MSR_C));
-    rD = imm + ~RegA + tmp;
-}
-
-with : op2631=0b010000 {
-  :mul rD,RegA,RegB is rD & RegA & RegB & cd0010=0b00000000000 {
-    rD = RegA * RegB;
-  }
-  :mulh rD,RegA,RegB is rD & RegA & RegB & cd0010=0b00000000001 {
-    local tmp:8 = sext(RegA) * sext(RegB);
-    rD = tmp[32, 32];
-  }
-  :mulhu rD,RegA,RegB is rD & RegA & RegB & cd0010=0b00000000011 {
-    local tmp:8 = zext(RegA) * zext(RegB);
-    rD = tmp[32, 32];
-  }
-  :mulhsu rD,RegA,RegB is rD & RegA & RegB & cd0010=0b00000000010 {
-    local tmp:8 = sext(RegA) * zext(RegB);
-    rD = tmp[32, 32];
-  }
-}
-:muli rD, RegA, imm is op2631=0b011000 & rD & RegA & imm { rD = RegA * imm; }
+:muli rD,RegA,imm is op2631=0b011000 & rD & RegA & imm { rD = RegA * imm; }
 
 with : op2631=0b010010 {
-  :idiv  rD,RegA,RegB is rD & RegA & RegB & cd0010=0b00000000000 { rD = RegB s/ RegA; }
-  :idivu rD,RegA,RegB is rD & RegA & RegB & cd0010=0b00000000010 { rD = RegB / RegA; }
+    :idiv  rD,RegA,RegB is rD & RegA & RegB & cd0010=0b00000000000 { rD = RegB s/ RegA; }
+    :idivu rD,RegA,RegB is rD & RegA & RegB & cd0010=0b00000000010 { rD = RegB / RegA; }
 }
 
 with : op2631=0b011001 {
-  with : bs1115=0 {
-    :bsrli rD,rA,imm5 is rD & rA & bs0510=0b000000 & imm5 { rD = rA >> imm5; }
-    :bsrai rD,rA,imm5 is rD & rA & bs0510=0b010000 & imm5 { rD = rA s>> imm5; }
-    :bslli rD,rA,imm5 is rD & rA & bs0510=0b100000 & imm5 { rD = rA << imm5; }
-  } # bs1115=0
-  :bsefi rD, rA, immw, imm5 is rD & rA & bs1115=0b01000 & immw & cd0505=0 & imm5 {
-      local mask:4 = ~(0xFFFFFFFF << immw);
-      rD = (rA >> imm5) & mask;
-  }
-  :bsifi rD, rA, immw, imm5 is rD & rA & bs1115=0b10000 & immw & cd0505=0 & imm5 {
-      local mask:4 = (0xFFFFFFFF << (immw + 1)) ^ (0xFFFFFFFF << imm5);
-      rD = ((rA << imm5) & mask)|(rD & mask);
-  }
+    with : bs1115=0 {
+        :bsrli rD,rA,imm5 is rD & rA & bs0510=0b000000 & imm5 { rD = rA >> imm5; }
+        :bsrai rD,rA,imm5 is rD & rA & bs0510=0b010000 & imm5 { rD = rA s>> imm5; }
+        :bslli rD,rA,imm5 is rD & rA & bs0510=0b100000 & imm5 { rD = rA << imm5; }
+    } # bs1115=0
+    :bsefi rD, rA, immw, imm5 is rD & rA & bs1115=0b01000 & immw & cd0505=0 & imm5 {
+        local mask:4 = ~(0xFFFFFFFF << immw);
+        rD = (rA >> imm5) & mask;
+    }
+    :bsifi rD, rA, immw, imm5 is rD & rA & bs1115=0b10000 & immw & cd0505=0 & imm5 {
+        local mask:4 = (0xFFFFFFFF << (immw + 1)) ^ (0xFFFFFFFF << imm5);
+        rD = ((rA << imm5) & mask)|(rD & mask);
+    }
 }
 
 with : op2631=0b010001 {
-  :bsrl rD, rA, rB is rD & rA & rB & cd0010=0b00000000000 { rD = rA >> rB; }
-  :bsra rD, rA, rB is rD & rA & rB & cd0010=0b01000000000 { rD = rA s>> rB; }
-  :bsll rD, rA, rB is rD & rA & rB & cd0010=0b10000000000 { rD = rA << rB; }
+  :bsrl rD,RegA,RegB is rD & RegA & RegB & cd0010=0b00000000000 { rD = RegA >> RegB; }
+  :bsra rD,RegA,RegB is rD & RegA & RegB & cd0010=0b01000000000 { rD = RegA s>> RegB; }
+  :bsll rD,RegA,RegB is rD & RegA & RegB & cd0010=0b10000000000 { rD = RegA << RegB; }
 }
 
 with :cd0010=0b00000000000 {
