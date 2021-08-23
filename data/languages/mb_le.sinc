@@ -143,6 +143,8 @@ RegA: rA is rA & rA=0 { export 0:4; }
 RegB: rB is rB { export rB; }
 RegB: rB is rB & rB=0 { export 0:4; }
 
+@include "mb_insts_fp.sinc"
+
 :imm imm16u is op2631=0b101100 & rD=0 & rA=0 & imm16u 
   [ 
     ImmMode = 1; 
@@ -220,108 +222,49 @@ with : opc3=0b001 & opc2=0 {
     }
 } # opc=0b001 (addi)
 
-:rsubi rD, rA, imm is op2631=0b001001 & rD & rA & imm {
-	rD = imm + ~rA + 1;
-	$(MSR_C) = sborrow(imm, rA);
+:rsubi rD, RegA, imm is op2631=0b001001 & rD & RegA & imm {
+	rD = imm + ~RegA + 1;
+	setCF(~sborrow(imm, RegA));
 }
 
-:rsubic rD, rA, imm is op2631=0b001011 & rD & rA & imm {
+:rsubic rD, RegA, imm is op2631=0b001011 & rD & RegA & imm {
     local tmp:4 = zext($(MSR_C));
-    rD = imm + ~rA + tmp;
-	  $(MSR_C) = sborrow(imm, rA);
+    rD = imm + ~RegA + tmp;
+	  setCF(~sborrow(imm, RegA));
 }
 
-:rsubik rD, rA, imm is op2631=0b001101 & rD & rA & imm {
-    rD = imm + ~rA + 1;
+:rsubik rD, RegA, imm is op2631=0b001101 & rD & RegA & imm {
+    rD = imm - RegA;
 }
 
-:rsubikc rD, rA, imm is op2631=0b001111 & rD & rA & imm {
+:rsubikc rD, RegA, imm is op2631=0b001111 & rD & RegA & imm {
     local tmp:4 = zext($(MSR_C));
-    rD = imm + ~rA + tmp;
+    rD = imm + ~RegA + tmp;
 }
 
-:mul rD, rA, rB is op2631=0b010000 & rD & rA & rB & cd0010=0b00000000000 {
-	rD = rA * rB;
+with : op2631=0b010000 {
+  :mul rD,RegA,RegB is rD & RegA & RegB & cd0010=0b00000000000 {
+    rD = RegA * RegB;
+  }
+  :mulh rD,RegA,RegB is rD & RegA & RegB & cd0010=0b00000000001 {
+    local tmp:8 = sext(RegA) * sext(RegB);
+    rD = tmp[32, 32];
+  }
+  :mulhu rD,RegA,RegB is rD & RegA & RegB & cd0010=0b00000000011 {
+    local tmp:8 = zext(RegA) * zext(RegB);
+    rD = tmp[32, 32];
+  }
+  :mulhsu rD,RegA,RegB is rD & RegA & RegB & cd0010=0b00000000010 {
+    local tmp:8 = sext(RegA) * zext(RegB);
+    rD = tmp[32, 32];
+  }
 }
+:muli rD, RegA, imm is op2631=0b011000 & rD & RegA & imm { rD = RegA * imm; }
 
-:mulh rD, rA, rB is op2631=0b010000 & rD & rA & rB & cd0010=0b00000000001 {
-	rD = (rA * rB) s>> 32;
+with : op2631=0b010010 {
+  :idiv  rD,RegA,RegB is rD & RegA & RegB & cd0010=0b00000000000 { rD = RegB s/ RegA; }
+  :idivu rD,RegA,RegB is rD & RegA & RegB & cd0010=0b00000000010 { rD = RegB / RegA; }
 }
-:mulhu rD, rA, rB is op2631=0b010000 & rD & rA & rB & cd0010=0b00000000011 {
-	rD = (rA * rB) >> 32;
-}
-:mulhsu rD, rA, rB is op2631=0b010000 & rD & rA & rB & cd0010=0b00000000010 {
-	rD = (rA * rB) s>> 32;
-}
-
-:idiv rD, rA, rB is op2631=0b010010 & rD & rA & rB & cd0010=0b00000000000 {
-	rD = rB s/ rA;
-}
-:idivu rD, rA, rB is op2631=0b010010 & rD & rA & rB & cd0010=0b00000000010 {
-	rD = rB / rA;
-}
-
-:fadd rD, rA, rB      is op2631=0b010110 & rD & rA & rB & cd0010=0b00000000000 {
-    rD = rB f+ rA;
-}
-
-:frsub rD, rA, rB is op2631=0b010110 & rD & rA & rB & cd0010=0b00010000000 {
-  rD = rB f- rA;
-}
-
-:fmul rD, rA, rB is op2631=0b010110 & rD & rA & rB & cd0010=0b00100000000 {
-  rD = rB f* rA;
-}
-
-:fdiv rD, rA, rB is op2631=0b010110 & rD & rA & rB & cd0010=0b00110000000 {
-  rD = rB f/ rA;
-}
-
-:fcmp.un rD, rA, rB is op2631=0b010110 & rD & rA & rB & cd0010=0b01000000000 {
-  local tmp:1 = nan(rA) || nan(rB);
-  rD = zext(tmp);
-}
-
-:fcmp.lt rD, rA, rB is op2631=0b010110 & rD & rA & rB & cd0010=0b01000010000{
-  local tmp:1 = rB f< rA;
-  rD = zext(tmp);
-}
-
-:fcmp.eq rD, rA, rB is op2631=0b010110 & rD & rA & rB & cd0010=0b01000100000 {
-  local tmp:1 = rB f== rA;
-  rD = zext(tmp);
-}
-
-:fcmp.le rD, rA, rB is op2631=0b010110 & rD & rA & rB & cd0010=0b01000110000 {
-  local tmp:1 = rB f<= rA;
-  rD = zext(tmp);
-}
-
-:fcmp.gt rD, rA, rB is op2631=0b010110 & rD & rA & rB & cd0010=0b01001000000 {
-  local tmp:1 = rB f> rA;
-  rD = zext(tmp);
-}
-
-:fcmp.ne rD, rA, rB is op2631=0b010110 & rD & rA & rB & cd0010=0b01001010000 {
-  local tmp:1 = rB f!= rA;
-  rD = zext(tmp);
-}
-
-:fcmp.ge rD, rA, rB is op2631=0b010110 & rD & rA & rB & cd0010=0b01001100000 {
-  local tmp:1 = rB f>= rA;
-  rD = zext(tmp);
-}
-
-:flt rD, rA is op2631=0b010110 & rD & rA & imm16u=0b0000001010000000 {
-  rD = int2float(rA);
-}
-
-:fint rD, rA is op2631=0b010110 & rD & rA & imm16u=0b0000001100000000 {
-  rD = trunc(rA);
-}
-
-:fsqrt rD, rA is op2631=0b010110 & rD & rA & imm16u=0b0000001110000000 { rD = sqrt(rA); }
-:muli rD, rA, imm is op2631=0b011000 & rD & rA & imm { rD = rA * imm; }
 
 with : op2631=0b011001 {
   with : bs1115=0 {

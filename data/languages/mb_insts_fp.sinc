@@ -1,0 +1,48 @@
+@ifndef MB_INST_FP
+@define MB_INST_FP
+
+with : op2631=0b010110 {
+    :fadd  rD,RegA,RegB is rD & RegA & RegB & cd0010=0b00000000000 { rD = RegB f+ RegA; }
+    :frsub rD,RegA,RegB is rD & RegA & RegB & cd0010=0b00010000000 { rD = RegB f- RegA; }
+    :fmul  rD,RegA,RegB is rD & RegA & RegB & cd0010=0b00100000000 { rD = RegB f* RegA; }
+    :fdiv  rD,RegA,RegB is rD & RegA & RegB & cd0010=0b00110000000 { rD = RegB f/ RegA; }
+    :fcmp.un rD, rA, rB is rD & rA & rB & cd0010=0b01000000000 {
+        local tmp:1 = nan(rA) || nan(rB);
+        rD = zext(tmp);
+    }
+
+    :fcmp.lt rD, rA, rB is rD & rA & rB & cd0010=0b01000010000{
+        local tmp:1 = rB f< rA;
+        rD = zext(tmp);
+    }
+
+    :fcmp.eq rD, rA, rB is rD & rA & rB & cd0010=0b01000100000 {
+        local tmp:1 = rB f== rA;
+        rD = zext(tmp);
+    }
+
+    :fcmp.le rD, rA, rB is rD & rA & rB & cd0010=0b01000110000 {
+        local tmp:1 = rB f<= rA;
+        rD = zext(tmp);
+    }
+
+    :fcmp.gt rD, rA, rB is rD & rA & rB & cd0010=0b01001000000 {
+        local tmp:1 = rB f> rA;
+        rD = zext(tmp);
+    }
+
+    :fcmp.ne rD, rA, rB is rD & rA & rB & cd0010=0b01001010000 {
+        local tmp:1 = rB f!= rA;
+        rD = zext(tmp);
+    }
+
+    :fcmp.ge rD, rA, rB is rD & rA & rB & cd0010=0b01001100000 {
+        local tmp:1 = rB f>= rA;
+        rD = zext(tmp);
+    }
+    :flt    rD, rA is rD & rA & imm16u=0b0000001010000000 { rD = int2float(rA); }
+    :fint   rD, rA is rD & rA & imm16u=0b0000001100000000 { rD = trunc(rA); }
+    :fsqrt  rD, rA is rD & rA & imm16u=0b0000001110000000 { rD = sqrt(rA); }
+}
+
+@endif
