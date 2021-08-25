@@ -68,10 +68,12 @@ macro setPC(val) {
 }
 
 macro swapByteOrder4(dest, src){
-  dest[0,8] =  src[24,8];
-  dest[8,8] =  src[16,8];
-  dest[16,8] = src[8,8];
-  dest[24,8] = src[0,8];
+  local _sbtmp:4;
+  _sbtmp[0,8] =  src[24,8];
+  _sbtmp[8,8] =  src[16,8];
+  _sbtmp[16,8] = src[8,8];
+  _sbtmp[24,8] = src[0,8];
+  dest = _sbtmp;
 }
 
 define token instr(32)
@@ -188,7 +190,7 @@ with : opc3=0b000 & opc2=0 & cd0010=0b00000000000 {
 }
 
 with : opc3=0b000 & opc2=1 { # rsub/cmp
-    :rsub   rD,RegA,RegB is opc_k=0 & opc_c=0 & rD & RegA & RegB & cd0010=0b00000000000 {
+    :rsub rD,RegA,RegB is opc_k=0 & opc_c=0 & rD & RegA & RegB & cd0010=0b00000000000 {
         rD = RegB - RegA;
         setCF(sborrow(RegB, RegA));
     }
@@ -480,38 +482,38 @@ with : op2631=0b101111 {
   }
 
   :beqid rA, TBRel is cd2125=0b10000 & rA & TBRel {
-    delayslot(1);
     local tflg:1 = (rA == 0);
+    delayslot(1);
     if tflg goto TBRel;
   }
 
   :bneid rA, TBRel is cd2125=0b10001 & rA & TBRel {
-    delayslot(1);
     local tflg:1 = (rA != 0);
+    delayslot(1);
     if tflg goto TBRel;
   }
 
   :bltid rA, TBRel is cd2125=0b10010 & rA & TBRel {
-    delayslot(1);
     local tflg:1 = (rA s< 0);
+    delayslot(1);
     if tflg goto TBRel;
   }
 
   :bleid rA, TBRel is cd2125=0b10011 & rA & TBRel {
-    delayslot(1);
     local tflg:1 = (rA s<= 0);
+    delayslot(1);
     if tflg goto TBRel;
   }
 
   :bgtid rA, TBRel is cd2125=0b10100 & rA & TBRel {
-    delayslot(1);
     local tflg:1 = (rA s> 0);
+    delayslot(1);
     if tflg goto TBRel;
   }
 
   :bgeid rA, TBRel is cd2125=0b10101 & rA & TBRel {
-    delayslot(1);
     local tflg:1 = (rA s>= 0);
+    delayslot(1);
     if tflg goto TBRel;
   }
 } # with op2631=0b101111
